@@ -37,8 +37,8 @@ $flash = get_flash();
 
             <nav class="nav flex-column sidebar-nav">
                 <a class="nav-link <?= is_active_menu('/modules/dashboard/') ? 'active' : ''; ?>" href="<?= e(url('modules/dashboard/index.php')); ?>">Dashboard</a>
-                <a class="nav-link <?= is_active_menu('/modules/barang/') ? 'active' : ''; ?>" href="<?= e(url('modules/barang/index.php')); ?>">Data Barang</a>
                 <a class="nav-link <?= is_active_menu('/modules/ruangan/') ? 'active' : ''; ?>" href="<?= e(url('modules/ruangan/index.php')); ?>">Data Ruangan</a>
+                <a class="nav-link <?= is_active_menu('/modules/barang/') ? 'active' : ''; ?>" href="<?= e(url('modules/barang/index.php')); ?>">Data Barang</a>
                 <a class="nav-link <?= is_active_menu('/modules/transaksi/masuk.php') ? 'active' : ''; ?>" href="<?= e(url('modules/transaksi/masuk.php')); ?>">Barang Masuk</a>
                 <a class="nav-link <?= is_active_menu('/modules/transaksi/keluar.php') ? 'active' : ''; ?>" href="<?= e(url('modules/transaksi/keluar.php')); ?>">Barang Keluar</a>
                 <a class="nav-link <?= is_active_menu('/modules/transaksi/history.php') ? 'active' : ''; ?>" href="<?= e(url('modules/transaksi/history.php')); ?>">History</a>
@@ -73,14 +73,20 @@ $flash = get_flash();
 
             <div class="offcanvas offcanvas-start d-xl-none" tabindex="-1" id="mobileSidebar">
                 <div class="offcanvas-header">
-                    <h5 class="offcanvas-title"><?= e(APP_NAME); ?></h5>
+                    <div class="offcanvas-brand">
+                        <div class="brand-mark brand-mark-mobile">SH</div>
+                        <div>
+                            <h5 class="offcanvas-title mb-0"><?= e(APP_NAME); ?></h5>
+                            <div class="small text-muted">Admin Dashboard</div>
+                        </div>
+                    </div>
                     <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
                 </div>
                 <div class="offcanvas-body">
                     <nav class="nav flex-column sidebar-nav">
                         <a class="nav-link <?= is_active_menu('/modules/dashboard/') ? 'active' : ''; ?>" href="<?= e(url('modules/dashboard/index.php')); ?>">Dashboard</a>
-                        <a class="nav-link <?= is_active_menu('/modules/barang/') ? 'active' : ''; ?>" href="<?= e(url('modules/barang/index.php')); ?>">Data Barang</a>
                         <a class="nav-link <?= is_active_menu('/modules/ruangan/') ? 'active' : ''; ?>" href="<?= e(url('modules/ruangan/index.php')); ?>">Data Ruangan</a>
+                        <a class="nav-link <?= is_active_menu('/modules/barang/') ? 'active' : ''; ?>" href="<?= e(url('modules/barang/index.php')); ?>">Data Barang</a>
                         <a class="nav-link <?= is_active_menu('/modules/transaksi/masuk.php') ? 'active' : ''; ?>" href="<?= e(url('modules/transaksi/masuk.php')); ?>">Barang Masuk</a>
                         <a class="nav-link <?= is_active_menu('/modules/transaksi/keluar.php') ? 'active' : ''; ?>" href="<?= e(url('modules/transaksi/keluar.php')); ?>">Barang Keluar</a>
                         <a class="nav-link <?= is_active_menu('/modules/transaksi/history.php') ? 'active' : ''; ?>" href="<?= e(url('modules/transaksi/history.php')); ?>">History</a>

@@ -4,17 +4,8 @@ require_once dirname(__DIR__, 2) . '/config/app.php';
 
 require_login();
 
-$filterRuangan = trim($_GET['ruangan'] ?? '');
-$params = [];
-$sql = 'SELECT * FROM komputer_client WHERE 1=1';
-
-if ($filterRuangan !== '') {
-    $sql .= ' AND ruangan = :ruangan';
-    $params['ruangan'] = $filterRuangan;
-}
-
-$sql .= ' ORDER BY tanggal DESC, jam DESC, id DESC';
-$rows = fetch_all($pdo, $sql, $params);
+$filters = normalize_computer_client_filters($_GET);
+$rows = get_computer_client_rows($pdo, $filters);
 
 header('Content-Type: application/vnd.ms-excel; charset=utf-8');
 header('Content-Disposition: attachment; filename=data-komputer-client.xls');

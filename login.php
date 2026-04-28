@@ -60,9 +60,9 @@ if (is_post()) {
                     <div class="col-lg-6 bg-white">
                         <div class="p-4 p-lg-5">
                             <div class="mb-4">
-                                <p class="text-uppercase text-primary fw-bold small mb-2">Admin Login</p>
-                                <h2 class="fw-bold mb-2">Masuk ke aplikasi</h2>
-                                <p class="text-muted mb-0">Gunakan akun admin untuk mengelola data inventaris.</p>
+                                <!-- <p class="text-uppercase text-primary fw-bold small mb-2">Admin Login</p> -->
+                                <h2 class="fw-bold mb-2">WELCOME SI INTEL</h2>
+                                <!-- <p class="text-muted mb-0">Gunakan akun admin untuk mengelola data inventaris.</p> -->
                             </div>
 
                             <?php if ($errors): ?>
@@ -93,8 +93,8 @@ if (is_post()) {
                             </form>
 
                             <div class="small text-muted mt-4">
-                                Default akun:
-                                <span class="fw-semibold">admin / admin123</span>
+                                <!-- Default akun: -->
+                                <!-- <span class="fw-semibold">admin / admin123</span> -->
                             </div>
                         </div>
                     </div>

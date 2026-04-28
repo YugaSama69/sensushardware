@@ -25,7 +25,7 @@ CREATE TABLE barang (
     id INT AUTO_INCREMENT PRIMARY KEY,
     kode_barang VARCHAR(50) NOT NULL UNIQUE,
     nama_barang VARCHAR(150) NOT NULL,
-    ruangan_id INT NOT NULL,
+    ruangan_id INT NULL,
     tahun_inventaris YEAR NOT NULL,
     qty INT NOT NULL DEFAULT 0,
     kondisi ENUM('Baik', 'Rusak', 'Perbaikan') NOT NULL DEFAULT 'Baik',
@@ -37,6 +37,8 @@ CREATE TABLE barang (
 CREATE TABLE histori_barang (
     id INT AUTO_INCREMENT PRIMARY KEY,
     barang_id INT NOT NULL,
+    ruangan_id INT NULL,
+    ruangan_nama VARCHAR(100) NULL,
     tipe_transaksi ENUM('masuk', 'keluar') NOT NULL,
     qty INT NOT NULL,
     stok_sebelum INT NOT NULL,
@@ -88,11 +90,11 @@ INSERT INTO ruangan (nama_ruangan, lokasi, penanggung_jawab) VALUES
 ('Ruang Multimedia', 'Lantai 3 Gedung B', 'Ahmad Fadli');
 
 INSERT INTO barang (kode_barang, nama_barang, ruangan_id, tahun_inventaris, qty, kondisi, keterangan) VALUES
-('BRG-0001', 'PC All in One Lenovo', 1, 2024, 12, 'Baik', 'Digunakan untuk praktikum siswa.'),
-('BRG-0002', 'Router Mikrotik RB750', 2, 2023, 4, 'Baik', 'Perangkat distribusi jaringan utama.'),
-('BRG-0003', 'Proyektor Epson EB-X06', 3, 2022, 3, 'Perbaikan', 'Satu unit sedang servis ringan.');
+('BRG-0001', 'PC All in One Lenovo', NULL, 2024, 12, 'Baik', 'Digunakan untuk praktikum siswa.'),
+('BRG-0002', 'Router Mikrotik RB750', NULL, 2023, 4, 'Baik', 'Perangkat distribusi jaringan utama.'),
+('BRG-0003', 'Proyektor Epson EB-X06', NULL, 2022, 3, 'Perbaikan', 'Satu unit sedang servis ringan.');
 
-INSERT INTO histori_barang (barang_id, tipe_transaksi, qty, stok_sebelum, stok_sesudah, nama_pengguna, tujuan, keterangan, tanggal, jam) VALUES
-(1, 'masuk', 12, 0, 12, 'Administrator', '-', 'Input stok awal inventaris.', CURDATE(), CURTIME()),
-(2, 'masuk', 4, 0, 4, 'Administrator', '-', 'Input stok awal inventaris.', CURDATE(), CURTIME()),
-(3, 'masuk', 3, 0, 3, 'Administrator', '-', 'Input stok awal inventaris.', CURDATE(), CURTIME());
+INSERT INTO histori_barang (barang_id, ruangan_id, ruangan_nama, tipe_transaksi, qty, stok_sebelum, stok_sesudah, nama_pengguna, tujuan, keterangan, tanggal, jam) VALUES
+(1, 1, 'Lab Komputer', 'masuk', 12, 0, 12, 'Administrator', '-', 'Input stok awal inventaris.', CURDATE(), CURTIME()),
+(2, 2, 'Ruang Server', 'masuk', 4, 0, 4, 'Administrator', '-', 'Input stok awal inventaris.', CURDATE(), CURTIME()),
+(3, 3, 'Ruang Multimedia', 'masuk', 3, 0, 3, 'Administrator', '-', 'Input stok awal inventaris.', CURDATE(), CURTIME());

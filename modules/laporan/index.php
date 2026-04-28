@@ -60,6 +60,15 @@ require_once BASE_PATH . '/includes/layout_top.php';
                 </select>
             </div>
             <div class="col-md-2">
+                <label class="form-label">Kondisi Barang</label>
+                <select name="kondisi" class="form-select">
+                    <option value="">Semua</option>
+                    <option value="Baik" <?= $filters['kondisi'] === 'Baik' ? 'selected' : ''; ?>>Baik</option>
+                    <option value="Rusak" <?= $filters['kondisi'] === 'Rusak' ? 'selected' : ''; ?>>Rusak</option>
+                    <option value="Perbaikan" <?= $filters['kondisi'] === 'Perbaikan' ? 'selected' : ''; ?>>Perbaikan</option>
+                </select>
+            </div>
+            <div class="col-md-2">
                 <label class="form-label">Jenis</label>
                 <select name="tipe_transaksi" class="form-select">
                     <option value="">Semua</option>
@@ -93,6 +102,7 @@ require_once BASE_PATH . '/includes/layout_top.php';
                         <th>No</th>
                         <th>Barang</th>
                         <th>Ruangan</th>
+                        <th>Kondisi</th>
                         <th>Transaksi</th>
                         <th>Qty</th>
                         <th>Stok</th>
@@ -112,7 +122,8 @@ require_once BASE_PATH . '/includes/layout_top.php';
                                 <strong><?= e($row['nama_barang']); ?></strong>
                                 <div class="small text-muted"><?= e($row['kode_barang']); ?></div>
                             </td>
-                            <td><?= e($row['nama_ruangan'] ?: '-'); ?></td>
+                            <td><?= e($row['nama_ruangan_transaksi'] ?: '-'); ?></td>
+                            <td><span class="badge text-bg-<?= condition_badge($row['kondisi']); ?>"><?= e($row['kondisi']); ?></span></td>
                             <td><span class="badge text-bg-<?= transaction_badge($row['tipe_transaksi']); ?>"><?= ucfirst(e($row['tipe_transaksi'])); ?></span></td>
                             <td><?= format_number($row['qty']); ?></td>
                             <td><?= format_number($row['stok_sebelum']); ?> -> <?= format_number($row['stok_sesudah']); ?></td>

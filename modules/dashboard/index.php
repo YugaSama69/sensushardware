@@ -17,10 +17,10 @@ $barangKeluarBulanIni = (int) fetch_scalar(
 );
 $recentHistory = fetch_all(
     $pdo,
-    'SELECT h.*, b.nama_barang, r.nama_ruangan
+    'SELECT h.*, b.nama_barang, COALESCE(h.ruangan_nama, r.nama_ruangan) AS nama_ruangan_transaksi
      FROM histori_barang h
      INNER JOIN barang b ON b.id = h.barang_id
-     LEFT JOIN ruangan r ON r.id = b.ruangan_id
+     LEFT JOIN ruangan r ON r.id = h.ruangan_id
      ORDER BY h.tanggal DESC, h.jam DESC, h.id DESC
      LIMIT 8'
 );
@@ -91,7 +91,7 @@ require_once BASE_PATH . '/includes/layout_top.php';
                                         <strong><?= e($row['nama_barang']); ?></strong>
                                         <div class="small text-muted"><?= e($row['keterangan'] ?: '-'); ?></div>
                                     </td>
-                                    <td><?= e($row['nama_ruangan'] ?: '-'); ?></td>
+                                    <td><?= e($row['nama_ruangan_transaksi'] ?: '-'); ?></td>
                                     <td><span class="badge text-bg-<?= transaction_badge($row['tipe_transaksi']); ?>"><?= ucfirst(e($row['tipe_transaksi'])); ?></span></td>
                                     <td><?= format_number($row['qty']); ?></td>
                                     <td><?= e(day_name_id($row['tanggal'])); ?>, <?= e(format_date_id($row['tanggal'])); ?> <?= e(format_time_id($row['jam'])); ?></td>

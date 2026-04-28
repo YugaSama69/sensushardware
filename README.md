@@ -85,6 +85,14 @@ Jika aplikasi sudah pernah diinstall sebelum modul pendataan komputer ditambahka
 - Export PDF dibuat tanpa library tambahan agar tetap siap pakai di XAMPP standar.
 - Asset Bootstrap 5 dan DataTables menggunakan CDN.
 
+## Catatan Ruangan Barang
+
+- Master `Data Barang` tidak lagi mengunci barang ke satu ruangan.
+- Ruangan sekarang dipilih saat transaksi `Barang Masuk` dan `Barang Keluar`.
+- Riwayat transaksi menyimpan snapshot ruangan pada saat transaksi dibuat.
+
+Jika aplikasi sudah terpasang sebelumnya, jalankan migrasi [database/migrate_barang_tanpa_ruangan.sql](/c:/xampp/htdocs/sensushardware/database/migrate_barang_tanpa_ruangan.sql) agar histori lama mengambil snapshot ruangan dan relasi barang ke ruangan dilepas.
+
 ## Pendataan Komputer Client
 
 Halaman client:

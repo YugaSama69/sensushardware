@@ -4,7 +4,8 @@ require_once dirname(__DIR__, 2) . '/config/app.php';
 
 $pageTitle = 'Komputer Client';
 $errors = [];
-$filterRuangan = trim($_GET['ruangan'] ?? '');
+$filters = normalize_computer_client_filters($_GET);
+$redirectQuery = trim($_POST['redirect_query'] ?? '');
 
 if (is_post()) {
     verify_csrf();
@@ -16,7 +17,7 @@ if (is_post()) {
         $statement = $pdo->prepare('DELETE FROM komputer_client WHERE id = :id');
         $statement->execute(['id' => $id]);
         set_flash('success', 'Data komputer client berhasil dihapus.');
-        redirect('modules/komputer/index.php');
+        redirect('modules/komputer/index.php' . ($redirectQuery !== '' ? '?' . $redirectQuery : ''));
     }
 
     if ($action === 'update' && $id > 0) {
@@ -89,22 +90,15 @@ if (is_post()) {
             $payload['id'] = $id;
             $statement->execute($payload);
             set_flash('success', 'Data komputer client berhasil diperbarui.');
-            redirect('modules/komputer/index.php');
+            redirect('modules/komputer/index.php' . ($redirectQuery !== '' ? '?' . $redirectQuery : ''));
         }
     }
 }
 
-$params = [];
-$sql = 'SELECT * FROM komputer_client WHERE 1=1';
-
-if ($filterRuangan !== '') {
-    $sql .= ' AND ruangan = :ruangan';
-    $params['ruangan'] = $filterRuangan;
-}
-
-$sql .= ' ORDER BY tanggal DESC, jam DESC, id DESC';
-$computers = fetch_all($pdo, $sql, $params);
-$rooms = fetch_all($pdo, 'SELECT DISTINCT ruangan FROM komputer_client WHERE ruangan <> "" ORDER BY ruangan ASC');
+$computers = get_computer_client_rows($pdo, $filters);
+$filterOptions = get_computer_client_filter_options($pdo);
+$exportQuery = build_query_string($filters);
+$roomOptions = get_room_name_options($pdo);
 
 require_once BASE_PATH . '/includes/layout_top.php';
 ?>
@@ -126,21 +120,34 @@ require_once BASE_PATH . '/includes/layout_top.php';
         <?php endif; ?>
 
         <form method="get" class="row g-3 align-items-end">
-            <div class="col-md-4">
-                <label class="form-label">Filter Ruangan</label>
-                <select name="ruangan" class="form-select">
-                    <option value="">Semua ruangan</option>
-                    <?php foreach ($rooms as $room): ?>
-                        <option value="<?= e($room['ruangan']); ?>" <?= $filterRuangan === $room['ruangan'] ? 'selected' : ''; ?>>
-                            <?= e($room['ruangan']); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="col-md-8 d-flex gap-2 flex-wrap">
+            <?php
+            $filterLabels = [
+                'merk' => 'Merk',
+                'processor' => 'Processor',
+                'ram' => 'RAM',
+                'storage' => 'SSD / HDD',
+                'os_name' => 'OS',
+                'tahun_inventaris' => 'Tahun Inventaris',
+                'ruangan' => 'Ruangan',
+            ];
+            ?>
+            <?php foreach ($filterLabels as $name => $label): ?>
+                <div class="col-xl-3 col-md-4">
+                    <label class="form-label"><?= e($label); ?></label>
+                    <select name="<?= e($name); ?>" class="form-select">
+                        <option value="">Semua <?= e($label); ?></option>
+                        <?php foreach ($filterOptions[$name] as $option): ?>
+                            <option value="<?= e($option); ?>" <?= $filters[$name] === $option ? 'selected' : ''; ?>>
+                                <?= e($option); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            <?php endforeach; ?>
+            <div class="col-12 d-flex gap-2 flex-wrap">
                 <button type="submit" class="btn btn-primary">Terapkan</button>
                 <a href="<?= e(url('modules/komputer/index.php')); ?>" class="btn btn-light">Reset</a>
-                <a href="<?= e(url('modules/komputer/export_excel.php' . ($filterRuangan !== '' ? '?ruangan=' . urlencode($filterRuangan) : ''))); ?>" class="btn btn-success">Export Excel</a>
+                <a href="<?= e(url('modules/komputer/export_excel.php' . ($exportQuery !== '' ? '?' . $exportQuery : ''))); ?>" class="btn btn-success">Export Excel</a>
                 <a href="<?= e(url('pendataan/index.php')); ?>" class="btn btn-outline-dark" target="_blank">Buka Halaman Client</a>
             </div>
         </form>
@@ -229,6 +236,7 @@ require_once BASE_PATH . '/includes/layout_top.php';
                         <?= csrf_field(); ?>
                         <input type="hidden" name="action" value="update">
                         <input type="hidden" name="id" value="<?= $computer['id']; ?>">
+                        <input type="hidden" name="redirect_query" value="<?= e($exportQuery); ?>">
                         <div class="row g-3">
                             <?php
                             $inputs = [
@@ -257,7 +265,20 @@ require_once BASE_PATH . '/includes/layout_top.php';
                                 <?php $fieldName = $name === 'nama_user' ? 'petugas' : $name; ?>
                                 <div class="col-md-<?= in_array($name, ['ssd', 'hdd', 'vga'], true) ? '12' : '4'; ?>">
                                     <label class="form-label"><?= e($label); ?></label>
-                                    <?php if (in_array($name, ['ssd', 'hdd', 'vga'], true)): ?>
+                                    <?php if ($name === 'ruangan'): ?>
+                                        <select name="ruangan" class="form-select" required>
+                                            <option value="">Pilih ruangan</option>
+                                            <?php foreach ($roomOptions as $roomOption): ?>
+                                                <option value="<?= e($roomOption); ?>" <?= $computer['ruangan'] === $roomOption ? 'selected' : ''; ?>>
+                                                    <?= e($roomOption); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                            <?php if ($computer['ruangan'] !== '' && !in_array($computer['ruangan'], $roomOptions, true)): ?>
+                                                <option value="<?= e($computer['ruangan']); ?>" selected><?= e($computer['ruangan']); ?></option>
+                                            <?php endif; ?>
+                                        </select>
+                                        <div class="form-text">Gunakan dropdown ini untuk memindahkan komputer ke ruangan lain yang sudah terdata.</div>
+                                    <?php elseif (in_array($name, ['ssd', 'hdd', 'vga'], true)): ?>
                                         <textarea name="<?= e($name); ?>" class="form-control" rows="2"><?= e($computer[$fieldName]); ?></textarea>
                                     <?php else: ?>
                                         <input type="<?= in_array($name, ['core', 'tahun_inventaris'], true) ? 'number' : 'text'; ?>" name="<?= e($name); ?>" class="form-control" value="<?= e((string) ($computer[$fieldName] ?: ($name === 'tahun_inventaris' ? date('Y') : ''))); ?>" <?= in_array($name, ['hostname', 'mac_address', 'tahun_inventaris', 'ruangan', 'nama_user'], true) ? 'required' : ''; ?>>
@@ -287,6 +308,7 @@ require_once BASE_PATH . '/includes/layout_top.php';
                         <?= csrf_field(); ?>
                         <input type="hidden" name="action" value="delete">
                         <input type="hidden" name="id" value="<?= $computer['id']; ?>">
+                        <input type="hidden" name="redirect_query" value="<?= e($exportQuery); ?>">
                         <p class="mb-0">Yakin ingin menghapus data komputer <strong><?= e($computer['hostname']); ?></strong>?</p>
                     </div>
                     <div class="modal-footer">

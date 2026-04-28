@@ -130,6 +130,7 @@ body {
     background: rgba(255, 255, 255, 0.18);
     font-weight: 800;
     letter-spacing: 0.08em;
+    flex-shrink: 0;
 }
 
 .sidebar-brand h1 {
@@ -142,6 +143,21 @@ body {
     margin: 0;
     color: rgba(255, 255, 255, 0.7);
     font-size: 0.85rem;
+}
+
+.offcanvas-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.brand-mark-mobile {
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    background: var(--primary-soft);
+    color: var(--primary);
 }
 
 .sidebar-nav {
@@ -539,6 +555,7 @@ table.dataTable.dtr-inline.collapsed > tbody > tr > th.dtr-control::before {
     .login-shell {
         border-radius: 24px !important;
     }
+
 }
 
 @media (max-width: 575.98px) {
@@ -548,12 +565,6 @@ table.dataTable.dtr-inline.collapsed > tbody > tr > th.dtr-control::before {
 
     .mobile-menu-fab {
         font-size: 0.95rem;
-    }
-
-    .brand-mark {
-        width: 46px;
-        height: 46px;
-        border-radius: 16px;
     }
 
     .form-control,

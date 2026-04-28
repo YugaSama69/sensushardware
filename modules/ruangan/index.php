@@ -40,6 +40,9 @@ if (is_post()) {
         }
 
         if ($action === 'update' && $id > 0) {
+            $existingRoom = fetch_one($pdo, 'SELECT nama_ruangan FROM ruangan WHERE id = :id', ['id' => $id]);
+            $oldRoomName = $existingRoom['nama_ruangan'] ?? '';
+
             $statement = $pdo->prepare('UPDATE ruangan SET nama_ruangan = :nama_ruangan, lokasi = :lokasi, penanggung_jawab = :penanggung_jawab WHERE id = :id');
             $statement->execute([
                 'id' => $id,
@@ -47,6 +50,15 @@ if (is_post()) {
                 'lokasi' => $lokasi,
                 'penanggung_jawab' => $penanggungJawab,
             ]);
+
+            if ($oldRoomName !== '' && $oldRoomName !== $namaRuangan) {
+                $statement = $pdo->prepare('UPDATE komputer_client SET ruangan = :nama_ruangan WHERE ruangan = :old_ruangan');
+                $statement->execute([
+                    'nama_ruangan' => $namaRuangan,
+                    'old_ruangan' => $oldRoomName,
+                ]);
+            }
+
             set_flash('success', 'Data ruangan berhasil diperbarui.');
             redirect('modules/ruangan/index.php');
         }

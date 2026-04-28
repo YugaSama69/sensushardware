@@ -15,10 +15,11 @@ $lines[] = str_repeat('-', 90);
 
 foreach ($rows as $index => $row) {
     $lines[] = sprintf(
-        '%03d | %s | %s | %s | Qty:%s | %s->%s | %s | %s | %s %s',
+        '%03d | %s | %s | %s | %s | Qty:%s | %s->%s | %s | %s | %s %s',
         $index + 1,
         substr($row['nama_barang'], 0, 18),
-        substr($row['nama_ruangan'] ?: '-', 0, 12),
+        substr($row['nama_ruangan_transaksi'] ?: '-', 0, 12),
+        strtoupper(substr($row['kondisi'] ?: '-', 0, 10)),
         strtoupper($row['tipe_transaksi']),
         $row['qty'],
         $row['stok_sebelum'],

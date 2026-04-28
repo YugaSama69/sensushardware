@@ -20,10 +20,10 @@ if (is_post()) {
 
 $historyRows = fetch_all(
     $pdo,
-    'SELECT h.*, b.nama_barang, r.nama_ruangan
+    'SELECT h.*, b.nama_barang, b.kondisi, b.keterangan AS keterangan_barang, COALESCE(h.ruangan_nama, r.nama_ruangan) AS nama_ruangan_transaksi
      FROM histori_barang h
      INNER JOIN barang b ON b.id = h.barang_id
-     LEFT JOIN ruangan r ON r.id = b.ruangan_id
+     LEFT JOIN ruangan r ON r.id = h.ruangan_id
      ORDER BY h.tanggal DESC, h.jam DESC, h.id DESC'
 );
 
@@ -45,6 +45,8 @@ require_once BASE_PATH . '/includes/layout_top.php';
                     <tr>
                         <th>No</th>
                         <th>Nama Barang</th>
+                        <th>Ruangan</th>
+                        <th>Kondisi</th>
                         <th>Jenis</th>
                         <th>Qty</th>
                         <th>Stok Sebelum</th>
@@ -63,8 +65,10 @@ require_once BASE_PATH . '/includes/layout_top.php';
                             <td><?= $index + 1; ?></td>
                             <td>
                                 <strong><?= e($row['nama_barang']); ?></strong>
-                                <div class="small text-muted"><?= e($row['nama_ruangan'] ?: '-'); ?></div>
+                                <div class="small text-muted"><?= e($row['keterangan_barang'] ?: '-'); ?></div>
                             </td>
+                            <td><?= e($row['nama_ruangan_transaksi'] ?: '-'); ?></td>
+                            <td><span class="badge text-bg-<?= condition_badge($row['kondisi']); ?>"><?= e($row['kondisi']); ?></span></td>
                             <td><span class="badge text-bg-<?= transaction_badge($row['tipe_transaksi']); ?>"><?= ucfirst(e($row['tipe_transaksi'])); ?></span></td>
                             <td><?= format_number($row['qty']); ?></td>
                             <td><?= format_number($row['stok_sebelum']); ?></td>
@@ -104,6 +108,8 @@ require_once BASE_PATH . '/includes/layout_top.php';
                         <p>Yakin ingin menghapus history transaksi berikut?</p>
                         <div class="bg-light rounded-4 p-3 small">
                             <div><strong>Barang:</strong> <?= e($row['nama_barang']); ?></div>
+                            <div><strong>Ruangan:</strong> <?= e($row['nama_ruangan_transaksi'] ?: '-'); ?></div>
+                            <div><strong>Kondisi:</strong> <?= e($row['kondisi']); ?></div>
                             <div><strong>Jenis:</strong> <?= ucfirst(e($row['tipe_transaksi'])); ?></div>
                             <div><strong>Qty:</strong> <?= format_number($row['qty']); ?></div>
                             <div><strong>Tanggal:</strong> <?= e(format_date_id($row['tanggal'])); ?> <?= e(format_time_id($row['jam'])); ?></div>

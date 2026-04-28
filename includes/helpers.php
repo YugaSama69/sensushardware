@@ -167,9 +167,8 @@ function get_low_stock_items(PDO $pdo, int $limit = 5): array
 {
     return fetch_all(
         $pdo,
-        'SELECT b.nama_barang, b.qty, r.nama_ruangan
+        'SELECT b.nama_barang, b.qty
          FROM barang b
-         LEFT JOIN ruangan r ON r.id = b.ruangan_id
          WHERE b.qty < 5
          ORDER BY b.qty ASC, b.nama_barang ASC
          LIMIT ' . (int) $limit
@@ -184,16 +183,118 @@ function normalize_report_filters(array $input): array
         'tahun' => trim($input['tahun'] ?? ''),
         'ruangan_id' => trim($input['ruangan_id'] ?? ''),
         'barang_id' => trim($input['barang_id'] ?? ''),
+        'kondisi' => trim($input['kondisi'] ?? ''),
         'tipe_transaksi' => trim($input['tipe_transaksi'] ?? ''),
     ];
 }
 
+function normalize_computer_client_filters(array $input): array
+{
+    return [
+        'merk' => trim($input['merk'] ?? ''),
+        'processor' => trim($input['processor'] ?? ''),
+        'ram' => trim($input['ram'] ?? ''),
+        'storage' => trim($input['storage'] ?? ''),
+        'os_name' => trim($input['os_name'] ?? ''),
+        'tahun_inventaris' => trim($input['tahun_inventaris'] ?? ''),
+        'ruangan' => trim($input['ruangan'] ?? ''),
+    ];
+}
+
+function get_computer_client_rows(PDO $pdo, array $filters): array
+{
+    $sql = 'SELECT * FROM komputer_client WHERE 1=1';
+    $params = [];
+
+    if ($filters['merk'] !== '') {
+        $sql .= ' AND merk = :merk';
+        $params['merk'] = $filters['merk'];
+    }
+
+    if ($filters['processor'] !== '') {
+        $sql .= ' AND processor = :processor';
+        $params['processor'] = $filters['processor'];
+    }
+
+    if ($filters['ram'] !== '') {
+        $sql .= ' AND ram = :ram';
+        $params['ram'] = $filters['ram'];
+    }
+
+    if ($filters['storage'] !== '') {
+        $sql .= ' AND (ssd = :storage_ssd OR hdd = :storage_hdd)';
+        $params['storage_ssd'] = $filters['storage'];
+        $params['storage_hdd'] = $filters['storage'];
+    }
+
+    if ($filters['os_name'] !== '') {
+        $sql .= ' AND os_name = :os_name';
+        $params['os_name'] = $filters['os_name'];
+    }
+
+    if ($filters['tahun_inventaris'] !== '') {
+        $sql .= ' AND tahun_inventaris = :tahun_inventaris';
+        $params['tahun_inventaris'] = $filters['tahun_inventaris'];
+    }
+
+    if ($filters['ruangan'] !== '') {
+        $sql .= ' AND ruangan = :ruangan';
+        $params['ruangan'] = $filters['ruangan'];
+    }
+
+    $sql .= ' ORDER BY tanggal DESC, jam DESC, id DESC';
+
+    return fetch_all($pdo, $sql, $params);
+}
+
+function get_computer_client_filter_options(PDO $pdo): array
+{
+    $fetchValues = static function (array $rows): array {
+        return array_map(static fn (array $row): string => (string) ($row['value'] ?? ''), $rows);
+    };
+
+    return [
+        'merk' => $fetchValues(fetch_all($pdo, 'SELECT DISTINCT merk AS value FROM komputer_client WHERE merk <> "" ORDER BY merk ASC')),
+        'processor' => $fetchValues(fetch_all($pdo, 'SELECT DISTINCT processor AS value FROM komputer_client WHERE processor <> "" ORDER BY processor ASC')),
+        'ram' => $fetchValues(fetch_all($pdo, 'SELECT DISTINCT ram AS value FROM komputer_client WHERE ram <> "" ORDER BY ram ASC')),
+        'storage' => $fetchValues(fetch_all(
+            $pdo,
+            'SELECT value
+             FROM (
+                SELECT DISTINCT ssd AS value FROM komputer_client WHERE ssd <> ""
+                UNION
+                SELECT DISTINCT hdd AS value FROM komputer_client WHERE hdd <> ""
+             ) storage_values
+             ORDER BY value ASC'
+        )),
+        'os_name' => $fetchValues(fetch_all($pdo, 'SELECT DISTINCT os_name AS value FROM komputer_client WHERE os_name <> "" ORDER BY os_name ASC')),
+        'tahun_inventaris' => $fetchValues(fetch_all($pdo, 'SELECT DISTINCT tahun_inventaris AS value FROM komputer_client WHERE tahun_inventaris <> "" ORDER BY tahun_inventaris DESC')),
+        'ruangan' => get_room_name_options($pdo),
+    ];
+}
+
+function get_room_name_options(PDO $pdo): array
+{
+    $rows = fetch_all(
+        $pdo,
+        'SELECT value
+         FROM (
+            SELECT DISTINCT nama_ruangan AS value FROM ruangan WHERE nama_ruangan <> ""
+            UNION
+            SELECT DISTINCT ruangan AS value FROM komputer_client WHERE ruangan <> ""
+         ) room_values
+         ORDER BY value ASC'
+    );
+
+    return array_map(static fn (array $row): string => (string) ($row['value'] ?? ''), $rows);
+}
+
 function get_report_rows(PDO $pdo, array $filters): array
 {
-    $sql = 'SELECT h.*, b.kode_barang, b.nama_barang, r.nama_ruangan
+    $sql = 'SELECT h.*, b.kode_barang, b.nama_barang, b.kondisi, COALESCE(h.ruangan_nama, r.nama_ruangan) AS nama_ruangan_transaksi
             FROM histori_barang h
             INNER JOIN barang b ON b.id = h.barang_id
-            LEFT JOIN ruangan r ON r.id = b.ruangan_id
+            LEFT JOIN ruangan r ON r.id = h.ruangan_id
             WHERE 1=1';
 
     $params = [];
@@ -214,13 +315,18 @@ function get_report_rows(PDO $pdo, array $filters): array
     }
 
     if ($filters['ruangan_id'] !== '') {
-        $sql .= ' AND r.id = :ruangan_id';
+        $sql .= ' AND h.ruangan_id = :ruangan_id';
         $params['ruangan_id'] = (int) $filters['ruangan_id'];
     }
 
     if ($filters['barang_id'] !== '') {
         $sql .= ' AND b.id = :barang_id';
         $params['barang_id'] = (int) $filters['barang_id'];
+    }
+
+    if ($filters['kondisi'] !== '') {
+        $sql .= ' AND b.kondisi = :kondisi';
+        $params['kondisi'] = $filters['kondisi'];
     }
 
     if ($filters['tipe_transaksi'] !== '') {

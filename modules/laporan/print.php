@@ -35,6 +35,7 @@ $rows = get_report_rows($pdo, $filters);
                 <th>No</th>
                 <th>Nama Barang</th>
                 <th>Ruangan</th>
+                <th>Kondisi</th>
                 <th>Transaksi</th>
                 <th>Qty</th>
                 <th>Stok</th>
@@ -49,7 +50,8 @@ $rows = get_report_rows($pdo, $filters);
                 <tr>
                     <td><?= $index + 1; ?></td>
                     <td><?= e($row['nama_barang']); ?></td>
-                    <td><?= e($row['nama_ruangan'] ?: '-'); ?></td>
+                    <td><?= e($row['nama_ruangan_transaksi'] ?: '-'); ?></td>
+                    <td><?= e($row['kondisi'] ?: '-'); ?></td>
                     <td><?= ucfirst(e($row['tipe_transaksi'])); ?></td>
                     <td><?= format_number($row['qty']); ?></td>
                     <td><?= format_number($row['stok_sebelum']); ?> -> <?= format_number($row['stok_sesudah']); ?></td>

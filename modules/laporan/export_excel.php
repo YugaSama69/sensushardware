@@ -15,6 +15,7 @@ header('Content-Disposition: attachment; filename=laporan-sensus-hardware.xls');
             <th>No</th>
             <th>Nama Barang</th>
             <th>Ruangan</th>
+            <th>Kondisi Barang</th>
             <th>Jenis Transaksi</th>
             <th>Qty</th>
             <th>Stok Sebelum</th>
@@ -32,7 +33,8 @@ header('Content-Disposition: attachment; filename=laporan-sensus-hardware.xls');
             <tr>
                 <td><?= $index + 1; ?></td>
                 <td><?= e($row['nama_barang']); ?></td>
-                <td><?= e($row['nama_ruangan'] ?: '-'); ?></td>
+                <td><?= e($row['nama_ruangan_transaksi'] ?: '-'); ?></td>
+                <td><?= e($row['kondisi'] ?: '-'); ?></td>
                 <td><?= ucfirst(e($row['tipe_transaksi'])); ?></td>
                 <td><?= format_number($row['qty']); ?></td>
                 <td><?= format_number($row['stok_sebelum']); ?></td>

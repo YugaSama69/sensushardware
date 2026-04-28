@@ -11,7 +11,6 @@ if (is_post()) {
     $id = (int) ($_POST['id'] ?? 0);
     $kodeBarang = trim($_POST['kode_barang'] ?? generate_barang_code($pdo));
     $namaBarang = trim($_POST['nama_barang'] ?? '');
-    $ruanganId = (int) ($_POST['ruangan_id'] ?? 0);
     $tahunInventaris = trim($_POST['tahun_inventaris'] ?? '');
     $qty = (int) ($_POST['qty'] ?? 0);
     $kondisi = trim($_POST['kondisi'] ?? '');
@@ -20,10 +19,6 @@ if (is_post()) {
     if ($action !== 'delete') {
         if ($namaBarang === '') {
             $errors[] = 'Nama barang wajib diisi.';
-        }
-
-        if ($ruanganId <= 0) {
-            $errors[] = 'Ruangan wajib dipilih.';
         }
 
         if ($tahunInventaris === '' || !preg_match('/^\d{4}$/', $tahunInventaris)) {
@@ -48,7 +43,7 @@ if (is_post()) {
             $statement->execute([
                 'kode_barang' => $kodeBarang,
                 'nama_barang' => $namaBarang,
-                'ruangan_id' => $ruanganId,
+                'ruangan_id' => null,
                 'tahun_inventaris' => $tahunInventaris,
                 'qty' => $qty,
                 'kondisi' => $kondisi,
@@ -67,7 +62,7 @@ if (is_post()) {
             $statement->execute([
                 'id' => $id,
                 'nama_barang' => $namaBarang,
-                'ruangan_id' => $ruanganId,
+                'ruangan_id' => null,
                 'tahun_inventaris' => $tahunInventaris,
                 'qty' => $qty,
                 'kondisi' => $kondisi,
@@ -91,12 +86,10 @@ if (is_post()) {
     }
 }
 
-$rooms = fetch_all($pdo, 'SELECT * FROM ruangan ORDER BY nama_ruangan ASC');
 $items = fetch_all(
     $pdo,
-    'SELECT b.*, r.nama_ruangan
+    'SELECT b.*
      FROM barang b
-     LEFT JOIN ruangan r ON r.id = b.ruangan_id
      ORDER BY b.nama_barang ASC'
 );
 
@@ -107,15 +100,11 @@ require_once BASE_PATH . '/includes/layout_top.php';
     <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center flex-wrap gap-3 pt-4">
         <div>
             <h5 class="mb-1">Master Data Barang</h5>
-            <p class="text-muted mb-0">Kelola inventaris hardware dan elektronik per ruangan.</p>
+            <p class="text-muted mb-0">Kelola master inventaris hardware dan elektronik tanpa penguncian ke ruangan.</p>
         </div>
         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addItemModal">Tambah Barang</button>
     </div>
     <div class="card-body">
-        <?php if (!$rooms): ?>
-            <div class="alert alert-warning">Tambahkan data ruangan terlebih dahulu sebelum menambah barang.</div>
-        <?php endif; ?>
-
         <?php if ($errors): ?>
             <div class="alert alert-danger">
                 <ul class="mb-0 ps-3">
@@ -132,7 +121,6 @@ require_once BASE_PATH . '/includes/layout_top.php';
                     <tr>
                         <th>No</th>
                         <th>Nama Barang</th>
-                        <th>Ruangan</th>
                         <th>Tahun</th>
                         <th>Qty</th>
                         <th>Kondisi</th>
@@ -148,7 +136,6 @@ require_once BASE_PATH . '/includes/layout_top.php';
                                 <strong><?= e($item['nama_barang']); ?></strong>
                                 <div class="small text-muted"><?= e($item['kode_barang']); ?></div>
                             </td>
-                            <td><?= e($item['nama_ruangan'] ?: '-'); ?></td>
                             <td><?= e($item['tahun_inventaris']); ?></td>
                             <td>
                                 <span class="fw-semibold <?= (int) $item['qty'] < 5 ? 'text-danger' : 'text-dark'; ?>">
@@ -185,15 +172,6 @@ require_once BASE_PATH . '/includes/layout_top.php';
                         <div class="col-md-6">
                             <label class="form-label">Nama Barang</label>
                             <input type="text" name="nama_barang" class="form-control" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Nama Ruangan</label>
-                            <select name="ruangan_id" class="form-select" required>
-                                <option value="">Pilih ruangan</option>
-                                <?php foreach ($rooms as $room): ?>
-                                    <option value="<?= $room['id']; ?>"><?= e($room['nama_ruangan']); ?></option>
-                                <?php endforeach; ?>
-                            </select>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Tahun Inventaris</label>
@@ -243,16 +221,6 @@ require_once BASE_PATH . '/includes/layout_top.php';
                             <div class="col-md-6">
                                 <label class="form-label">Nama Barang</label>
                                 <input type="text" name="nama_barang" class="form-control" value="<?= e($item['nama_barang']); ?>" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Nama Ruangan</label>
-                                <select name="ruangan_id" class="form-select" required>
-                                    <?php foreach ($rooms as $room): ?>
-                                        <option value="<?= $room['id']; ?>" <?= (int) $item['ruangan_id'] === (int) $room['id'] ? 'selected' : ''; ?>>
-                                            <?= e($room['nama_ruangan']); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Tahun Inventaris</label>
