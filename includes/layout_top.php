@@ -1,11 +1,14 @@
 <?php
 
 require_login();
+require_module_access();
 
 $pageTitle = $pageTitle ?? APP_NAME;
 $lowStockItems = get_low_stock_items($pdo);
 $currentUser = current_user();
 $flash = get_flash();
+$isAdminUser = is_admin_user();
+$showLowStockAlert = !is_active_menu('/modules/pengembangan/');
 ?><!doctype html>
 <html lang="id">
 <head>
@@ -36,14 +39,19 @@ $flash = get_flash();
             </div>
 
             <nav class="nav flex-column sidebar-nav">
-                <a class="nav-link <?= is_active_menu('/modules/dashboard/') ? 'active' : ''; ?>" href="<?= e(url('modules/dashboard/index.php')); ?>">Dashboard</a>
-                <a class="nav-link <?= is_active_menu('/modules/ruangan/') ? 'active' : ''; ?>" href="<?= e(url('modules/ruangan/index.php')); ?>">Data Ruangan</a>
-                <a class="nav-link <?= is_active_menu('/modules/barang/') ? 'active' : ''; ?>" href="<?= e(url('modules/barang/index.php')); ?>">Data Barang</a>
-                <a class="nav-link <?= is_active_menu('/modules/transaksi/masuk.php') ? 'active' : ''; ?>" href="<?= e(url('modules/transaksi/masuk.php')); ?>">Barang Masuk</a>
-                <a class="nav-link <?= is_active_menu('/modules/transaksi/keluar.php') ? 'active' : ''; ?>" href="<?= e(url('modules/transaksi/keluar.php')); ?>">Barang Keluar</a>
-                <a class="nav-link <?= is_active_menu('/modules/transaksi/history.php') ? 'active' : ''; ?>" href="<?= e(url('modules/transaksi/history.php')); ?>">History</a>
-                <a class="nav-link <?= is_active_menu('/modules/laporan/') ? 'active' : ''; ?>" href="<?= e(url('modules/laporan/index.php')); ?>">Laporan</a>
-                <a class="nav-link <?= is_active_menu('/modules/komputer/') ? 'active' : ''; ?>" href="<?= e(url('modules/komputer/index.php')); ?>">Komputer Client</a>
+                <?php if ($isAdminUser): ?>
+                    <a class="nav-link <?= is_active_menu('/modules/dashboard/') ? 'active' : ''; ?>" href="<?= e(url('modules/dashboard/index.php')); ?>">Dashboard</a>
+                    <a class="nav-link <?= is_active_menu('/modules/ruangan/') ? 'active' : ''; ?>" href="<?= e(url('modules/ruangan/index.php')); ?>">Data Ruangan</a>
+                    <a class="nav-link <?= is_active_menu('/modules/barang/') ? 'active' : ''; ?>" href="<?= e(url('modules/barang/index.php')); ?>">Data Barang</a>
+                    <a class="nav-link <?= is_active_menu('/modules/transaksi/masuk.php') ? 'active' : ''; ?>" href="<?= e(url('modules/transaksi/masuk.php')); ?>">Barang Masuk</a>
+                    <a class="nav-link <?= is_active_menu('/modules/transaksi/keluar.php') ? 'active' : ''; ?>" href="<?= e(url('modules/transaksi/keluar.php')); ?>">Barang Keluar</a>
+                    <a class="nav-link <?= is_active_menu('/modules/transaksi/history.php') ? 'active' : ''; ?>" href="<?= e(url('modules/transaksi/history.php')); ?>">History</a>
+                    <a class="nav-link <?= is_active_menu('/modules/laporan/') ? 'active' : ''; ?>" href="<?= e(url('modules/laporan/index.php')); ?>">Laporan</a>
+                    <a class="nav-link <?= is_active_menu('/modules/komputer/') ? 'active' : ''; ?>" href="<?= e(url('modules/komputer/index.php')); ?>">Komputer Client</a>
+                    <a class="nav-link <?= is_active_menu('/modules/kondisi_komputer/') ? 'active' : ''; ?>" href="<?= e(url('modules/kondisi_komputer/index.php')); ?>">Data Kondisi Komputer</a>
+                    <a class="nav-link <?= is_active_menu('/modules/mutasi_komputer/') ? 'active' : ''; ?>" href="<?= e(url('modules/mutasi_komputer/index.php')); ?>">Mutasi Komputer</a>
+                <?php endif; ?>
+                <a class="nav-link <?= is_active_menu('/modules/pengembangan/') ? 'active' : ''; ?>" href="<?= e(url('modules/pengembangan/index.php')); ?>">Laporan Pengembangan</a>
             </nav>
 
             <a href="<?= e(url('logout.php')); ?>" class="btn btn-outline-light mt-auto">Logout</a>
@@ -61,9 +69,11 @@ $flash = get_flash();
                     </div>
                 </div>
                 <div class="topbar-meta">
-                    <div class="alert-pill <?= $lowStockItems ? 'alert-low' : 'alert-safe'; ?>">
-                        <?= $lowStockItems ? count($lowStockItems) . ' stok menipis' : 'Stok aman'; ?>
-                    </div>
+                    <?php if ($showLowStockAlert): ?>
+                        <div class="alert-pill <?= $lowStockItems ? 'alert-low' : 'alert-safe'; ?>">
+                            <?= $lowStockItems ? count($lowStockItems) . ' stok menipis' : 'Stok aman'; ?>
+                        </div>
+                    <?php endif; ?>
                     <div class="user-pill">
                         <strong><?= e($currentUser['nama'] ?? 'Admin'); ?></strong>
                         <span><?= e($currentUser['username'] ?? '-'); ?></span>
@@ -84,14 +94,19 @@ $flash = get_flash();
                 </div>
                 <div class="offcanvas-body">
                     <nav class="nav flex-column sidebar-nav">
-                        <a class="nav-link <?= is_active_menu('/modules/dashboard/') ? 'active' : ''; ?>" href="<?= e(url('modules/dashboard/index.php')); ?>">Dashboard</a>
-                        <a class="nav-link <?= is_active_menu('/modules/ruangan/') ? 'active' : ''; ?>" href="<?= e(url('modules/ruangan/index.php')); ?>">Data Ruangan</a>
-                        <a class="nav-link <?= is_active_menu('/modules/barang/') ? 'active' : ''; ?>" href="<?= e(url('modules/barang/index.php')); ?>">Data Barang</a>
-                        <a class="nav-link <?= is_active_menu('/modules/transaksi/masuk.php') ? 'active' : ''; ?>" href="<?= e(url('modules/transaksi/masuk.php')); ?>">Barang Masuk</a>
-                        <a class="nav-link <?= is_active_menu('/modules/transaksi/keluar.php') ? 'active' : ''; ?>" href="<?= e(url('modules/transaksi/keluar.php')); ?>">Barang Keluar</a>
-                        <a class="nav-link <?= is_active_menu('/modules/transaksi/history.php') ? 'active' : ''; ?>" href="<?= e(url('modules/transaksi/history.php')); ?>">History</a>
-                        <a class="nav-link <?= is_active_menu('/modules/laporan/') ? 'active' : ''; ?>" href="<?= e(url('modules/laporan/index.php')); ?>">Laporan</a>
-                        <a class="nav-link <?= is_active_menu('/modules/komputer/') ? 'active' : ''; ?>" href="<?= e(url('modules/komputer/index.php')); ?>">Komputer Client</a>
+                        <?php if ($isAdminUser): ?>
+                            <a class="nav-link <?= is_active_menu('/modules/dashboard/') ? 'active' : ''; ?>" href="<?= e(url('modules/dashboard/index.php')); ?>">Dashboard</a>
+                            <a class="nav-link <?= is_active_menu('/modules/ruangan/') ? 'active' : ''; ?>" href="<?= e(url('modules/ruangan/index.php')); ?>">Data Ruangan</a>
+                            <a class="nav-link <?= is_active_menu('/modules/barang/') ? 'active' : ''; ?>" href="<?= e(url('modules/barang/index.php')); ?>">Data Barang</a>
+                            <a class="nav-link <?= is_active_menu('/modules/transaksi/masuk.php') ? 'active' : ''; ?>" href="<?= e(url('modules/transaksi/masuk.php')); ?>">Barang Masuk</a>
+                            <a class="nav-link <?= is_active_menu('/modules/transaksi/keluar.php') ? 'active' : ''; ?>" href="<?= e(url('modules/transaksi/keluar.php')); ?>">Barang Keluar</a>
+                            <a class="nav-link <?= is_active_menu('/modules/transaksi/history.php') ? 'active' : ''; ?>" href="<?= e(url('modules/transaksi/history.php')); ?>">History</a>
+                            <a class="nav-link <?= is_active_menu('/modules/laporan/') ? 'active' : ''; ?>" href="<?= e(url('modules/laporan/index.php')); ?>">Laporan</a>
+                            <a class="nav-link <?= is_active_menu('/modules/komputer/') ? 'active' : ''; ?>" href="<?= e(url('modules/komputer/index.php')); ?>">Komputer Client</a>
+                            <a class="nav-link <?= is_active_menu('/modules/kondisi_komputer/') ? 'active' : ''; ?>" href="<?= e(url('modules/kondisi_komputer/index.php')); ?>">Data Kondisi Komputer</a>
+                            <a class="nav-link <?= is_active_menu('/modules/mutasi_komputer/') ? 'active' : ''; ?>" href="<?= e(url('modules/mutasi_komputer/index.php')); ?>">Mutasi Komputer</a>
+                        <?php endif; ?>
+                        <a class="nav-link <?= is_active_menu('/modules/pengembangan/') ? 'active' : ''; ?>" href="<?= e(url('modules/pengembangan/index.php')); ?>">Laporan Pengembangan</a>
                         <a class="nav-link text-danger" href="<?= e(url('logout.php')); ?>">Logout</a>
                     </nav>
                 </div>
@@ -105,7 +120,7 @@ $flash = get_flash();
                     </div>
                 <?php endif; ?>
 
-                <?php if ($lowStockItems): ?>
+                <?php if ($showLowStockAlert && $lowStockItems): ?>
                     <div class="alert alert-warning border-0 shadow-sm">
                         <strong>Perhatian:</strong> Ada barang dengan stok di bawah 5 unit.
                         <?php foreach ($lowStockItems as $item): ?>

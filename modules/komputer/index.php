@@ -30,6 +30,7 @@ if (is_post()) {
             'model' => trim($_POST['model'] ?? ''),
             'processor' => trim($_POST['processor'] ?? ''),
             'core' => (int) ($_POST['core'] ?? 0),
+            'kondisi' => trim($_POST['kondisi'] ?? 'Baik'),
             'ram' => trim($_POST['ram'] ?? ''),
             'ssd' => trim($_POST['ssd'] ?? ''),
             'hdd' => trim($_POST['hdd'] ?? ''),
@@ -63,6 +64,10 @@ if (is_post()) {
             $errors[] = 'Tahun inventaris harus 4 digit.';
         }
 
+        if (!in_array($payload['kondisi'], ['Baik', 'Rusak', 'Perbaikan'], true)) {
+            $errors[] = 'Kondisi komputer tidak valid.';
+        }
+
         if (!$errors) {
             $statement = $pdo->prepare('
                 UPDATE komputer_client
@@ -74,6 +79,7 @@ if (is_post()) {
                     model = :model,
                     processor = :processor,
                     core = :core,
+                    kondisi = :kondisi,
                     ram = :ram,
                     ssd = :ssd,
                     hdd = :hdd,
@@ -99,6 +105,19 @@ $computers = get_computer_client_rows($pdo, $filters);
 $filterOptions = get_computer_client_filter_options($pdo);
 $exportQuery = build_query_string($filters);
 $roomOptions = get_room_name_options($pdo);
+$quickFilterLabels = [];
+
+if ($filters['ram_group'] !== '') {
+    $quickFilterLabels[] = 'RAM: ' . $filters['ram_group'];
+}
+
+if ($filters['os_group'] !== '') {
+    $quickFilterLabels[] = 'OS: ' . $filters['os_group'];
+}
+
+if ($filters['storage_mode'] === 'hdd_only') {
+    $quickFilterLabels[] = 'Storage: HDD saja';
+}
 
 require_once BASE_PATH . '/includes/layout_top.php';
 ?>
@@ -120,10 +139,20 @@ require_once BASE_PATH . '/includes/layout_top.php';
         <?php endif; ?>
 
         <form method="get" class="row g-3 align-items-end">
+            <?php if ($filters['ram_group'] !== ''): ?>
+                <input type="hidden" name="ram_group" value="<?= e($filters['ram_group']); ?>">
+            <?php endif; ?>
+            <?php if ($filters['os_group'] !== ''): ?>
+                <input type="hidden" name="os_group" value="<?= e($filters['os_group']); ?>">
+            <?php endif; ?>
+            <?php if ($filters['storage_mode'] !== ''): ?>
+                <input type="hidden" name="storage_mode" value="<?= e($filters['storage_mode']); ?>">
+            <?php endif; ?>
             <?php
             $filterLabels = [
                 'merk' => 'Merk',
                 'processor' => 'Processor',
+                'kondisi' => 'Kondisi',
                 'ram' => 'RAM',
                 'storage' => 'SSD / HDD',
                 'os_name' => 'OS',
@@ -151,17 +180,46 @@ require_once BASE_PATH . '/includes/layout_top.php';
                 <a href="<?= e(url('pendataan/index.php')); ?>" class="btn btn-outline-dark" target="_blank">Buka Halaman Client</a>
             </div>
         </form>
+
+        <?php if ($quickFilterLabels): ?>
+            <div class="alert alert-info mt-3 mb-0">
+                <strong>Filter cepat aktif:</strong>
+                <?php foreach ($quickFilterLabels as $label): ?>
+                    <span class="badge text-bg-light me-1 mt-2"><?= e($label); ?></span>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
     </div>
 </div>
 
 <div class="card border-0 shadow-sm">
     <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center flex-wrap gap-3 pt-4">
-        <div>
-            <h5 class="mb-1">Data Komputer Client</h5>
-            <p class="text-muted mb-0"><?= count($computers); ?> komputer terdata.</p>
+        <div class="d-flex align-items-start gap-3 flex-wrap">
+            <div>
+                <h5 class="mb-1">Data Komputer Client</h5>
+                <p class="text-muted mb-0"><?= count($computers); ?> komputer terdata.</p>
+            </div>
+            <button
+                type="button"
+                class="btn btn-outline-primary btn-sm js-refresh-computer-table mt-1"
+                data-refresh-url="<?= e(url('modules/komputer/index.php' . ($exportQuery !== '' ? '?' . $exportQuery : ''))); ?>"
+                title="Refresh data komputer client"
+                aria-label="Refresh data komputer client"
+            >&#x21bb;</button>
         </div>
     </div>
-    <div class="card-body">
+    <div class="computer-client-refresh-region">
+        <div class="computer-client-loading-indicator d-none" data-computer-loading>
+            <div class="computer-client-loading-box">
+                <div>
+                    <div class="fw-semibold">
+                        Memuat data komputer client<span class="computer-client-loading-dots" aria-hidden="true"></span>
+                    </div>
+                    <div class="small text-muted">Mohon tunggu, tabel sedang diperbarui.</div>
+                </div>
+            </div>
+        </div>
+        <div class="card-body computer-client-table-panel">
         <div class="table-responsive">
             <table class="table table-hover align-middle datatable">
                 <thead>
@@ -171,6 +229,7 @@ require_once BASE_PATH . '/includes/layout_top.php';
                         <th>IP</th>
                         <th>Merk</th>
                         <th>Processor</th>
+                        <th>Kondisi</th>
                         <th>RAM</th>
                         <th>SSD/HDD</th>
                         <th>OS</th>
@@ -198,6 +257,7 @@ require_once BASE_PATH . '/includes/layout_top.php';
                                 <?= e($computer['processor'] ?: '-'); ?>
                                 <div class="small text-muted"><?= e((string) ($computer['core'] ?: 0)); ?> core</div>
                             </td>
+                            <td><span class="badge text-bg-<?= condition_badge($computer['kondisi'] ?? 'Perbaikan'); ?>"><?= e($computer['kondisi'] ?: 'Baik'); ?></span></td>
                             <td><?= e($computer['ram'] ?: '-'); ?></td>
                             <td>
                                 <div><strong>SSD:</strong> <?= e($computer['ssd'] ?: '-'); ?></div>
@@ -220,105 +280,115 @@ require_once BASE_PATH . '/includes/layout_top.php';
                 </tbody>
             </table>
         </div>
+        </div>
+
+        <?php foreach ($computers as $computer): ?>
+            <div class="modal fade" id="editComputerModal<?= $computer['id']; ?>" tabindex="-1">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <form method="post">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Edit Data Komputer Client</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <?= csrf_field(); ?>
+                                <input type="hidden" name="action" value="update">
+                                <input type="hidden" name="id" value="<?= $computer['id']; ?>">
+                                <input type="hidden" name="redirect_query" value="<?= e($exportQuery); ?>">
+                                <div class="row g-3">
+                                    <?php
+                                    $inputs = [
+                                        'hostname' => 'Hostname',
+                                        'username' => 'Username Windows',
+                                        'ip_address' => 'IP Address',
+                                        'mac_address' => 'MAC Address',
+                                        'merk' => 'Merk / Brand',
+                                        'model' => 'Model',
+                                        'processor' => 'Processor',
+                                        'core' => 'Jumlah Core',
+                                        'kondisi' => 'Kondisi Komputer',
+                                        'ram' => 'RAM Total',
+                                        'ssd' => 'SSD',
+                                        'hdd' => 'HDD',
+                                        'vga' => 'VGA / GPU',
+                                        'motherboard' => 'Motherboard',
+                                        'os_name' => 'Nama OS',
+                                        'os_version' => 'Versi OS',
+                                        'architecture' => 'Arsitektur',
+                                        'tahun_inventaris' => 'Tahun Inventaris',
+                                        'ruangan' => 'Ruangan',
+                                        'nama_user' => 'Nama User',
+                                    ];
+                                    ?>
+                                    <?php foreach ($inputs as $name => $label): ?>
+                                        <?php $fieldName = $name === 'nama_user' ? 'petugas' : $name; ?>
+                                        <div class="col-md-<?= in_array($name, ['ssd', 'hdd', 'vga'], true) ? '12' : '4'; ?>">
+                                            <label class="form-label"><?= e($label); ?></label>
+                                            <?php if ($name === 'kondisi'): ?>
+                                                <select name="kondisi" class="form-select" required>
+                                                    <?php foreach (['Baik', 'Rusak', 'Perbaikan'] as $conditionOption): ?>
+                                                        <option value="<?= e($conditionOption); ?>" <?= ($computer['kondisi'] ?? 'Baik') === $conditionOption ? 'selected' : ''; ?>>
+                                                            <?= e($conditionOption); ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            <?php elseif ($name === 'ruangan'): ?>
+                                                <select name="ruangan" class="form-select" required>
+                                                    <option value="">Pilih ruangan</option>
+                                                    <?php foreach ($roomOptions as $roomOption): ?>
+                                                        <option value="<?= e($roomOption); ?>" <?= $computer['ruangan'] === $roomOption ? 'selected' : ''; ?>>
+                                                            <?= e($roomOption); ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                    <?php if ($computer['ruangan'] !== '' && !in_array($computer['ruangan'], $roomOptions, true)): ?>
+                                                        <option value="<?= e($computer['ruangan']); ?>" selected><?= e($computer['ruangan']); ?></option>
+                                                    <?php endif; ?>
+                                                </select>
+                                                <div class="form-text">Gunakan dropdown ini untuk memindahkan komputer ke ruangan lain yang sudah terdata.</div>
+                                            <?php elseif (in_array($name, ['ssd', 'hdd', 'vga'], true)): ?>
+                                                <textarea name="<?= e($name); ?>" class="form-control" rows="2"><?= e($computer[$fieldName]); ?></textarea>
+                                            <?php else: ?>
+                                                <input type="<?= in_array($name, ['core', 'tahun_inventaris'], true) ? 'number' : 'text'; ?>" name="<?= e($name); ?>" class="form-control" value="<?= e((string) ($computer[$fieldName] ?: ($name === 'tahun_inventaris' ? date('Y') : ''))); ?>" <?= in_array($name, ['hostname', 'mac_address', 'tahun_inventaris', 'ruangan', 'nama_user'], true) ? 'required' : ''; ?>>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                                <button type="submit" class="btn btn-primary">Update</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal fade" id="deleteComputerModal<?= $computer['id']; ?>" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <form method="post">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Hapus Data Komputer</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <?= csrf_field(); ?>
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="id" value="<?= $computer['id']; ?>">
+                                <input type="hidden" name="redirect_query" value="<?= e($exportQuery); ?>">
+                                <p class="mb-0">Yakin ingin menghapus data komputer <strong><?= e($computer['hostname']); ?></strong>?</p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                                <button type="submit" class="btn btn-danger">Hapus</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        <?php endforeach; ?>
     </div>
 </div>
-
-<?php foreach ($computers as $computer): ?>
-    <div class="modal fade" id="editComputerModal<?= $computer['id']; ?>" tabindex="-1">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-content">
-                <form method="post">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Edit Data Komputer Client</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <?= csrf_field(); ?>
-                        <input type="hidden" name="action" value="update">
-                        <input type="hidden" name="id" value="<?= $computer['id']; ?>">
-                        <input type="hidden" name="redirect_query" value="<?= e($exportQuery); ?>">
-                        <div class="row g-3">
-                            <?php
-                            $inputs = [
-                                'hostname' => 'Hostname',
-                                'username' => 'Username Windows',
-                                'ip_address' => 'IP Address',
-                                'mac_address' => 'MAC Address',
-                                'merk' => 'Merk / Brand',
-                                'model' => 'Model',
-                                'processor' => 'Processor',
-                                'core' => 'Jumlah Core',
-                                'ram' => 'RAM Total',
-                                'ssd' => 'SSD',
-                                'hdd' => 'HDD',
-                                'vga' => 'VGA / GPU',
-                                'motherboard' => 'Motherboard',
-                                'os_name' => 'Nama OS',
-                                'os_version' => 'Versi OS',
-                                'architecture' => 'Arsitektur',
-                                'tahun_inventaris' => 'Tahun Inventaris',
-                                'ruangan' => 'Ruangan',
-                                'nama_user' => 'Nama User',
-                            ];
-                            ?>
-                            <?php foreach ($inputs as $name => $label): ?>
-                                <?php $fieldName = $name === 'nama_user' ? 'petugas' : $name; ?>
-                                <div class="col-md-<?= in_array($name, ['ssd', 'hdd', 'vga'], true) ? '12' : '4'; ?>">
-                                    <label class="form-label"><?= e($label); ?></label>
-                                    <?php if ($name === 'ruangan'): ?>
-                                        <select name="ruangan" class="form-select" required>
-                                            <option value="">Pilih ruangan</option>
-                                            <?php foreach ($roomOptions as $roomOption): ?>
-                                                <option value="<?= e($roomOption); ?>" <?= $computer['ruangan'] === $roomOption ? 'selected' : ''; ?>>
-                                                    <?= e($roomOption); ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                            <?php if ($computer['ruangan'] !== '' && !in_array($computer['ruangan'], $roomOptions, true)): ?>
-                                                <option value="<?= e($computer['ruangan']); ?>" selected><?= e($computer['ruangan']); ?></option>
-                                            <?php endif; ?>
-                                        </select>
-                                        <div class="form-text">Gunakan dropdown ini untuk memindahkan komputer ke ruangan lain yang sudah terdata.</div>
-                                    <?php elseif (in_array($name, ['ssd', 'hdd', 'vga'], true)): ?>
-                                        <textarea name="<?= e($name); ?>" class="form-control" rows="2"><?= e($computer[$fieldName]); ?></textarea>
-                                    <?php else: ?>
-                                        <input type="<?= in_array($name, ['core', 'tahun_inventaris'], true) ? 'number' : 'text'; ?>" name="<?= e($name); ?>" class="form-control" value="<?= e((string) ($computer[$fieldName] ?: ($name === 'tahun_inventaris' ? date('Y') : ''))); ?>" <?= in_array($name, ['hostname', 'mac_address', 'tahun_inventaris', 'ruangan', 'nama_user'], true) ? 'required' : ''; ?>>
-                                    <?php endif; ?>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-primary">Update</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="deleteComputerModal<?= $computer['id']; ?>" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form method="post">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Hapus Data Komputer</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <?= csrf_field(); ?>
-                        <input type="hidden" name="action" value="delete">
-                        <input type="hidden" name="id" value="<?= $computer['id']; ?>">
-                        <input type="hidden" name="redirect_query" value="<?= e($exportQuery); ?>">
-                        <p class="mb-0">Yakin ingin menghapus data komputer <strong><?= e($computer['hostname']); ?></strong>?</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-danger">Hapus</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-<?php endforeach; ?>
 
 <?php require_once BASE_PATH . '/includes/layout_bottom.php'; ?>

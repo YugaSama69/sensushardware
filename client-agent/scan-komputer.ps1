@@ -9,10 +9,103 @@ param(
     [string]$TahunInventaris,
 
     [Parameter(Mandatory = $true)]
-    [string]$NamaUser
+    [string]$NamaUser,
+
+    [Parameter(Mandatory = $true)]
+    [string]$Kondisi
 )
 
 $ErrorActionPreference = 'Stop'
+
+function Get-SystemInstance {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ClassName
+    )
+
+    if (Get-Command Get-CimInstance -ErrorAction SilentlyContinue) {
+        return Get-CimInstance $ClassName
+    }
+
+    return Get-WmiObject -Class $ClassName
+}
+
+function Set-BestSecurityProtocol {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$TargetUrl
+    )
+
+    if ($TargetUrl -notmatch '^https://') {
+        return
+    }
+
+    try {
+        $available = [enum]::GetNames([Net.SecurityProtocolType])
+        $selected = 0
+
+        foreach ($name in @('Tls12', 'Tls11', 'Tls')) {
+            if ($available -contains $name) {
+                $selected = $selected -bor [int][Net.SecurityProtocolType]::$name
+            }
+        }
+
+        if ($selected -ne 0) {
+            [Net.ServicePointManager]::SecurityProtocol = $selected
+        }
+    } catch {
+        # Abaikan jika versi Windows/PowerShell lama tidak mendukung pengaturan ini.
+    }
+}
+
+function Invoke-JsonPost {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Url,
+
+        [Parameter(Mandatory = $true)]
+        [string]$JsonBody
+    )
+
+    Set-BestSecurityProtocol -TargetUrl $Url
+
+    if (Get-Command Invoke-RestMethod -ErrorAction SilentlyContinue) {
+        return Invoke-RestMethod -Uri $Url -Method Post -Body $JsonBody -ContentType 'application/json'
+    }
+
+    $request = [System.Net.WebRequest]::Create($Url)
+    $request.Method = 'POST'
+    $request.ContentType = 'application/json'
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($JsonBody)
+    $request.ContentLength = $bytes.Length
+
+    $requestStream = $request.GetRequestStream()
+    $requestStream.Write($bytes, 0, $bytes.Length)
+    $requestStream.Close()
+
+    $response = $request.GetResponse()
+    $responseStream = $response.GetResponseStream()
+    $reader = New-Object System.IO.StreamReader($responseStream)
+    $resultText = $reader.ReadToEnd()
+    $reader.Close()
+    $responseStream.Close()
+    $response.Close()
+
+    if (Get-Command ConvertFrom-Json -ErrorAction SilentlyContinue) {
+        return $resultText | ConvertFrom-Json
+    }
+
+    if ($resultText -match '"success"\s*:\s*true') {
+        return @{ success = $true; message = 'OK' }
+    }
+
+    $message = 'Gagal mengirim data.'
+    if ($resultText -match '"message"\s*:\s*"([^"]+)"') {
+        $message = $matches[1]
+    }
+
+    return @{ success = $false; message = $message }
+}
 
 function Convert-ToGbText {
     param([double]$Bytes)
@@ -33,13 +126,17 @@ function Join-DeviceNames {
 }
 
 try {
-    $computerSystem = Get-CimInstance Win32_ComputerSystem
-    $processor = Get-CimInstance Win32_Processor | Select-Object -First 1
-    $memory = Get-CimInstance Win32_PhysicalMemory
-    $os = Get-CimInstance Win32_OperatingSystem
-    $baseBoard = Get-CimInstance Win32_BaseBoard | Select-Object -First 1
-    $gpu = Get-CimInstance Win32_VideoController
-    $network = Get-CimInstance Win32_NetworkAdapterConfiguration |
+    if ($Kondisi -notin @('Baik', 'Rusak', 'Perbaikan')) {
+        throw "Kondisi komputer tidak valid."
+    }
+
+    $computerSystem = Get-SystemInstance -ClassName 'Win32_ComputerSystem'
+    $processor = Get-SystemInstance -ClassName 'Win32_Processor' | Select-Object -First 1
+    $memory = Get-SystemInstance -ClassName 'Win32_PhysicalMemory'
+    $os = Get-SystemInstance -ClassName 'Win32_OperatingSystem'
+    $baseBoard = Get-SystemInstance -ClassName 'Win32_BaseBoard' | Select-Object -First 1
+    $gpu = Get-SystemInstance -ClassName 'Win32_VideoController'
+    $network = Get-SystemInstance -ClassName 'Win32_NetworkAdapterConfiguration' |
         Where-Object { $_.IPEnabled -eq $true -and $_.MACAddress } |
         Select-Object -First 1
 
@@ -66,7 +163,7 @@ try {
             $hddText = Join-DeviceNames ($hddDisks | ForEach-Object { "$($_.FriendlyName) ($(Convert-ToGbText $_.Size))" })
         }
     } catch {
-        $diskDrives = Get-CimInstance Win32_DiskDrive
+        $diskDrives = Get-SystemInstance -ClassName 'Win32_DiskDrive'
         $diskText = Join-DeviceNames ($diskDrives | ForEach-Object { "$($_.Model) ($(Convert-ToGbText $_.Size))" })
         $hddText = $diskText
     }
@@ -91,10 +188,11 @@ try {
         tahun_inventaris = $TahunInventaris
         ruangan = $Ruangan
         petugas = $NamaUser
+        kondisi = $Kondisi
     }
 
     $json = $payload | ConvertTo-Json -Depth 4
-    $response = Invoke-RestMethod -Uri $ServerUrl -Method Post -Body $json -ContentType 'application/json'
+    $response = Invoke-JsonPost -Url $ServerUrl -JsonBody $json
 
     if ($response.success -eq $true) {
         Write-Host 'Data berhasil dikirim.' -ForegroundColor Green
@@ -103,6 +201,7 @@ try {
         Write-Host "Ruangan : $Ruangan"
         Write-Host "Tahun   : $TahunInventaris"
         Write-Host "Nama User : $NamaUser"
+        Write-Host "Kondisi : $Kondisi"
         exit 0
     }
 

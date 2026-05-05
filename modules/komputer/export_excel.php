@@ -21,6 +21,7 @@ header('Content-Disposition: attachment; filename=data-komputer-client.xls');
             <th>Model</th>
             <th>Processor</th>
             <th>Core</th>
+            <th>Kondisi</th>
             <th>RAM</th>
             <th>SSD</th>
             <th>HDD</th>
@@ -48,6 +49,7 @@ header('Content-Disposition: attachment; filename=data-komputer-client.xls');
                 <td><?= e($row['model']); ?></td>
                 <td><?= e($row['processor']); ?></td>
                 <td><?= e((string) $row['core']); ?></td>
+                <td><?= e($row['kondisi'] ?: 'Baik'); ?></td>
                 <td><?= e($row['ram']); ?></td>
                 <td><?= e($row['ssd']); ?></td>
                 <td><?= e($row['hdd']); ?></td>

@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS komputer_client (
     os_version VARCHAR(100) NULL,
     architecture VARCHAR(50) NULL,
     tahun_inventaris YEAR NULL,
+    kondisi ENUM('Baik', 'Rusak', 'Perbaikan') NOT NULL DEFAULT 'Baik',
     ruangan VARCHAR(100) NOT NULL,
     petugas VARCHAR(100) NOT NULL,
     tanggal DATE NOT NULL,
@@ -31,3 +32,10 @@ CREATE TABLE IF NOT EXISTS komputer_client (
 
 ALTER TABLE komputer_client
     ADD COLUMN IF NOT EXISTS tahun_inventaris YEAR NULL AFTER architecture;
+
+ALTER TABLE komputer_client
+    ADD COLUMN IF NOT EXISTS kondisi ENUM('Baik', 'Rusak', 'Perbaikan') NOT NULL DEFAULT 'Baik' AFTER tahun_inventaris;
+
+UPDATE komputer_client
+SET kondisi = 'Baik'
+WHERE kondisi IS NULL OR kondisi = '';

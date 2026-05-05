@@ -86,6 +86,36 @@ function format_time_id(?string $time): string
     return date('H:i', strtotime($time));
 }
 
+function format_month_year_id(?string $value): string
+{
+    if (!$value) {
+        return '-';
+    }
+
+    $timestamp = strtotime(strlen($value) === 7 ? $value . '-01' : $value);
+    if ($timestamp === false) {
+        return (string) $value;
+    }
+
+    $months = [
+        1 => 'Januari',
+        2 => 'Februari',
+        3 => 'Maret',
+        4 => 'April',
+        5 => 'Mei',
+        6 => 'Juni',
+        7 => 'Juli',
+        8 => 'Agustus',
+        9 => 'September',
+        10 => 'Oktober',
+        11 => 'November',
+        12 => 'Desember',
+    ];
+
+    $monthNumber = (int) date('n', $timestamp);
+    return ($months[$monthNumber] ?? date('F', $timestamp)) . ' ' . date('Y', $timestamp);
+}
+
 function day_name_id(?string $date): string
 {
     if (!$date) {
@@ -109,6 +139,62 @@ function day_name_id(?string $date): string
 function format_number(int|float|string $value): string
 {
     return number_format((float) $value, 0, ',', '.');
+}
+
+function format_percentage(int|float|string|null $value): string
+{
+    $normalized = str_replace(',', '.', str_replace('%', '', (string) ($value ?? '0')));
+    $formatted = rtrim(rtrim(number_format((float) $normalized, 2, '.', ''), '0'), '.');
+    return $formatted . '%';
+}
+
+function normalize_ram_group_label(?string $value): ?string
+{
+    $value = trim((string) $value);
+    if ($value === '' || $value === '-') {
+        return null;
+    }
+
+    $normalized = str_replace(',', '.', $value);
+    if (preg_match('/(\d+(?:\.\d+)?)/', $normalized, $matches) !== 1) {
+        return null;
+    }
+
+    $ramNumber = rtrim(rtrim(number_format((float) $matches[1], 2, '.', ''), '0'), '.');
+    return $ramNumber . ' GB';
+}
+
+function normalize_os_group_label(?string $value): ?string
+{
+    $value = trim((string) $value);
+    if ($value === '' || $value === '-') {
+        return null;
+    }
+
+    $normalizedOs = strtolower($value);
+    if (str_contains($normalizedOs, 'windows 11')) {
+        return 'Windows 11';
+    }
+    if (str_contains($normalizedOs, 'windows 10')) {
+        return 'Windows 10';
+    }
+    if (str_contains($normalizedOs, 'windows 8')) {
+        return 'Windows 8';
+    }
+    if (str_contains($normalizedOs, 'windows 7')) {
+        return 'Windows 7';
+    }
+    if (str_contains($normalizedOs, 'windows')) {
+        return 'Windows Lainnya';
+    }
+    if (str_contains($normalizedOs, 'ubuntu')) {
+        return 'Ubuntu';
+    }
+    if (str_contains($normalizedOs, 'linux')) {
+        return 'Linux';
+    }
+
+    return $value;
 }
 
 function condition_badge(string $condition): string
@@ -157,10 +243,142 @@ function fetch_one(PDO $pdo, string $sql, array $params = []): ?array
     return $result ?: null;
 }
 
-function generate_barang_code(PDO $pdo): string
+function barang_code_prefix_from_name(string $name): string
 {
-    $nextId = (int) fetch_scalar($pdo, 'SELECT COALESCE(MAX(id), 0) + 1 FROM barang');
-    return 'BRG-' . str_pad((string) $nextId, 4, '0', STR_PAD_LEFT);
+    $normalized = strtoupper(preg_replace('/[^A-Z0-9]+/i', ' ', trim($name)) ?? '');
+    $tokens = preg_split('/\s+/', $normalized, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+    $stopwords = ['DAN', 'TO', 'FOR', 'WITH', 'THE', 'OF', 'A', 'AN', 'DI', 'KE', 'DARI'];
+    $tokens = array_values(array_filter($tokens, static fn (string $token): bool => !in_array($token, $stopwords, true)));
+
+    if (!$tokens) {
+        return 'BRG';
+    }
+
+    $prefix = '';
+    foreach ($tokens as $token) {
+        if (strlen($prefix) >= 8) {
+            break;
+        }
+
+        if (preg_match('/^\d+$/', $token) === 1) {
+            $segment = substr($token, 0, 2);
+        } elseif (strlen($token) <= 4) {
+            $segment = $token;
+        } else {
+            $segment = substr($token, 0, 3);
+        }
+
+        $prefix .= $segment;
+    }
+
+    $prefix = substr($prefix, 0, 8);
+
+    if (strlen($prefix) < 3) {
+        $prefix = str_pad($prefix, 3, 'X');
+    }
+
+    return $prefix;
+}
+
+function generate_barang_code_from_name(PDO $pdo, string $name, ?int $excludeId = null): string
+{
+    $prefix = barang_code_prefix_from_name($name);
+    $params = ['prefix' => $prefix . '-%'];
+    $sql = 'SELECT kode_barang FROM barang WHERE kode_barang LIKE :prefix';
+
+    if ($excludeId !== null) {
+        $sql .= ' AND id <> :exclude_id';
+        $params['exclude_id'] = $excludeId;
+    }
+
+    $rows = fetch_all($pdo, $sql, $params);
+    $maxSequence = 0;
+
+    foreach ($rows as $row) {
+        if (preg_match('/^' . preg_quote($prefix, '/') . '-(\d+)$/', (string) ($row['kode_barang'] ?? ''), $matches) === 1) {
+            $maxSequence = max($maxSequence, (int) $matches[1]);
+        }
+    }
+
+    return $prefix . '-' . str_pad((string) ($maxSequence + 1), 3, '0', STR_PAD_LEFT);
+}
+
+function normalize_hex_color(?string $value, string $default = '#64748B'): string
+{
+    $value = strtoupper(trim((string) $value));
+    if (preg_match('/^#?[0-9A-F]{6}$/', $value) !== 1) {
+        return $default;
+    }
+
+    return '#' . ltrim($value, '#');
+}
+
+function get_contrast_text_color(string $backgroundHex): string
+{
+    $hex = ltrim(normalize_hex_color($backgroundHex), '#');
+    $red = hexdec(substr($hex, 0, 2));
+    $green = hexdec(substr($hex, 2, 2));
+    $blue = hexdec(substr($hex, 4, 2));
+    $brightness = (($red * 299) + ($green * 587) + ($blue * 114)) / 1000;
+
+    return $brightness >= 160 ? '#0F172A' : '#FFFFFF';
+}
+
+function get_master_barang_labels(PDO $pdo): array
+{
+    return fetch_all(
+        $pdo,
+        'SELECT id, nama_label, warna_label
+         FROM master_label_barang
+         ORDER BY nama_label ASC'
+    );
+}
+
+function get_barang_label_map(PDO $pdo): array
+{
+    $map = [];
+
+    foreach (get_master_barang_labels($pdo) as $row) {
+        $labelName = trim((string) ($row['nama_label'] ?? ''));
+        if ($labelName === '') {
+            continue;
+        }
+
+        $map[$labelName] = normalize_hex_color($row['warna_label'] ?? '#64748B');
+    }
+
+    return $map;
+}
+
+function get_barang_label_options(PDO $pdo): array
+{
+    $labels = array_map(
+        static fn (array $row): string => (string) ($row['nama_label'] ?? ''),
+        get_master_barang_labels($pdo)
+    );
+
+    $rows = fetch_all(
+        $pdo,
+        'SELECT DISTINCT label_barang
+         FROM barang
+         WHERE label_barang IS NOT NULL AND TRIM(label_barang) <> ""
+         ORDER BY label_barang ASC'
+    );
+
+    foreach ($rows as $row) {
+        $label = trim((string) ($row['label_barang'] ?? ''));
+        if ($label !== '' && !in_array($label, $labels, true)) {
+            $labels[] = $label;
+        }
+    }
+
+    if (!$labels) {
+        $labels[] = 'Lainnya';
+    }
+
+    sort($labels, SORT_NATURAL | SORT_FLAG_CASE);
+
+    return $labels;
 }
 
 function get_low_stock_items(PDO $pdo, int $limit = 5): array
@@ -193,11 +411,23 @@ function normalize_computer_client_filters(array $input): array
     return [
         'merk' => trim($input['merk'] ?? ''),
         'processor' => trim($input['processor'] ?? ''),
+        'kondisi' => trim($input['kondisi'] ?? ''),
         'ram' => trim($input['ram'] ?? ''),
+        'ram_group' => trim($input['ram_group'] ?? ''),
         'storage' => trim($input['storage'] ?? ''),
+        'storage_mode' => trim($input['storage_mode'] ?? ''),
         'os_name' => trim($input['os_name'] ?? ''),
+        'os_group' => trim($input['os_group'] ?? ''),
         'tahun_inventaris' => trim($input['tahun_inventaris'] ?? ''),
         'ruangan' => trim($input['ruangan'] ?? ''),
+    ];
+}
+
+function normalize_pengembangan_filters(array $input): array
+{
+    return [
+        'bulan_tahun' => trim($input['bulan_tahun'] ?? ''),
+        'input_user' => trim($input['input_user'] ?? ''),
     ];
 }
 
@@ -214,6 +444,11 @@ function get_computer_client_rows(PDO $pdo, array $filters): array
     if ($filters['processor'] !== '') {
         $sql .= ' AND processor = :processor';
         $params['processor'] = $filters['processor'];
+    }
+
+    if ($filters['kondisi'] !== '') {
+        $sql .= ' AND kondisi = :kondisi';
+        $params['kondisi'] = $filters['kondisi'];
     }
 
     if ($filters['ram'] !== '') {
@@ -244,7 +479,29 @@ function get_computer_client_rows(PDO $pdo, array $filters): array
 
     $sql .= ' ORDER BY tanggal DESC, jam DESC, id DESC';
 
-    return fetch_all($pdo, $sql, $params);
+    $rows = fetch_all($pdo, $sql, $params);
+
+    if ($filters['ram_group'] !== '') {
+        $rows = array_values(array_filter($rows, static function (array $row) use ($filters): bool {
+            return normalize_ram_group_label($row['ram'] ?? null) === $filters['ram_group'];
+        }));
+    }
+
+    if ($filters['os_group'] !== '') {
+        $rows = array_values(array_filter($rows, static function (array $row) use ($filters): bool {
+            return normalize_os_group_label($row['os_name'] ?? null) === $filters['os_group'];
+        }));
+    }
+
+    if ($filters['storage_mode'] === 'hdd_only') {
+        $rows = array_values(array_filter($rows, static function (array $row): bool {
+            $ssd = trim((string) ($row['ssd'] ?? ''));
+            $hdd = trim((string) ($row['hdd'] ?? ''));
+            return ($ssd === '' || $ssd === '-') && $hdd !== '' && $hdd !== '-';
+        }));
+    }
+
+    return $rows;
 }
 
 function get_computer_client_filter_options(PDO $pdo): array
@@ -256,6 +513,7 @@ function get_computer_client_filter_options(PDO $pdo): array
     return [
         'merk' => $fetchValues(fetch_all($pdo, 'SELECT DISTINCT merk AS value FROM komputer_client WHERE merk <> "" ORDER BY merk ASC')),
         'processor' => $fetchValues(fetch_all($pdo, 'SELECT DISTINCT processor AS value FROM komputer_client WHERE processor <> "" ORDER BY processor ASC')),
+        'kondisi' => ['Baik', 'Rusak', 'Perbaikan'],
         'ram' => $fetchValues(fetch_all($pdo, 'SELECT DISTINCT ram AS value FROM komputer_client WHERE ram <> "" ORDER BY ram ASC')),
         'storage' => $fetchValues(fetch_all(
             $pdo,
@@ -287,6 +545,36 @@ function get_room_name_options(PDO $pdo): array
     );
 
     return array_map(static fn (array $row): string => (string) ($row['value'] ?? ''), $rows);
+}
+
+function get_pengembangan_rows(PDO $pdo, array $filters): array
+{
+    $sql = 'SELECT * FROM laporan_pengembangan_aplikasi WHERE 1=1';
+    $params = [];
+
+    if ($filters['bulan_tahun'] !== '') {
+        $sql .= ' AND bulan_tahun = :bulan_tahun';
+        $params['bulan_tahun'] = $filters['bulan_tahun'] . '-01';
+    }
+
+    if ($filters['input_user'] !== '') {
+        $sql .= ' AND input_user = :input_user';
+        $params['input_user'] = $filters['input_user'];
+    }
+
+    $sql .= ' ORDER BY bulan_tahun DESC, id DESC';
+
+    return fetch_all($pdo, $sql, $params);
+}
+
+function get_pengembangan_filter_options(PDO $pdo): array
+{
+    return [
+        'input_user' => array_map(
+            static fn (array $row): string => (string) ($row['value'] ?? ''),
+            fetch_all($pdo, 'SELECT DISTINCT input_user AS value FROM laporan_pengembangan_aplikasi WHERE input_user <> "" ORDER BY input_user ASC')
+        ),
+    ];
 }
 
 function get_report_rows(PDO $pdo, array $filters): array

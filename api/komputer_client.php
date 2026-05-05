@@ -44,6 +44,7 @@ $fields = [
     'tahun_inventaris',
     'ruangan',
     'petugas',
+    'kondisi',
 ];
 
 $data = [];
@@ -53,6 +54,7 @@ foreach ($fields as $field) {
 
 $data['core'] = (int) ($payload['core'] ?? 0);
 $data['tahun_inventaris'] = trim((string) ($payload['tahun_inventaris'] ?? date('Y')));
+$data['kondisi'] = in_array($data['kondisi'], ['Baik', 'Rusak', 'Perbaikan'], true) ? $data['kondisi'] : 'Baik';
 $data['ip_address'] = $data['ip_address'] !== '' ? $data['ip_address'] : ($_SERVER['REMOTE_ADDR'] ?? '');
 $tanggal = date('Y-m-d');
 $jam = date('H:i:s');
@@ -92,10 +94,10 @@ try {
     $statement = $pdo->prepare('
         INSERT INTO komputer_client (
             hostname, username, ip_address, mac_address, merk, model, processor, core, ram, ssd, hdd,
-            vga, motherboard, os_name, os_version, architecture, tahun_inventaris, ruangan, petugas, tanggal, jam, created_at
+            vga, motherboard, os_name, os_version, architecture, tahun_inventaris, ruangan, petugas, kondisi, tanggal, jam, created_at
         ) VALUES (
             :hostname, :username, :ip_address, :mac_address, :merk, :model, :processor, :core, :ram, :ssd, :hdd,
-            :vga, :motherboard, :os_name, :os_version, :architecture, :tahun_inventaris, :ruangan, :petugas, :tanggal, :jam, NOW()
+            :vga, :motherboard, :os_name, :os_version, :architecture, :tahun_inventaris, :ruangan, :petugas, :kondisi, :tanggal, :jam, NOW()
         )
         ON DUPLICATE KEY UPDATE
             username = VALUES(username),
@@ -115,6 +117,7 @@ try {
             tahun_inventaris = VALUES(tahun_inventaris),
             ruangan = VALUES(ruangan),
             petugas = VALUES(petugas),
+            kondisi = VALUES(kondisi),
             tanggal = VALUES(tanggal),
             jam = VALUES(jam),
             created_at = NOW()
@@ -140,6 +143,7 @@ try {
         'tahun_inventaris' => $data['tahun_inventaris'],
         'ruangan' => $data['ruangan'],
         'petugas' => $data['petugas'],
+        'kondisi' => $data['kondisi'],
         'tanggal' => $tanggal,
         'jam' => $jam,
     ]);
