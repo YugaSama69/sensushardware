@@ -18,6 +18,7 @@ $showLowStockAlert = !is_active_menu('/modules/pengembangan/');
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="<?= e(url('assets/images/silegit-logo.png')); ?>">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css" rel="stylesheet">
@@ -31,7 +32,9 @@ $showLowStockAlert = !is_active_menu('/modules/pengembangan/');
 
         <aside class="sidebar d-none d-xl-flex flex-column">
             <div class="sidebar-brand">
-                <div class="brand-mark">SH</div>
+                <div class="brand-mark">
+                    <img src="<?= e(url('assets/images/silegit-logo.png')); ?>" alt="Logo SILEGIT" class="brand-logo">
+                </div>
                 <div>
                     <h1><?= e(APP_NAME); ?></h1>
                     <p>Admin Dashboard</p>
@@ -84,7 +87,9 @@ $showLowStockAlert = !is_active_menu('/modules/pengembangan/');
             <div class="offcanvas offcanvas-start d-xl-none" tabindex="-1" id="mobileSidebar">
                 <div class="offcanvas-header">
                     <div class="offcanvas-brand">
-                        <div class="brand-mark brand-mark-mobile">SH</div>
+                        <div class="brand-mark brand-mark-mobile">
+                            <img src="<?= e(url('assets/images/silegit-logo.png')); ?>" alt="Logo SILEGIT" class="brand-logo">
+                        </div>
                         <div>
                             <h5 class="offcanvas-title mb-0"><?= e(APP_NAME); ?></h5>
                             <div class="small text-muted">Admin Dashboard</div>

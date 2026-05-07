@@ -5,6 +5,7 @@ require_once dirname(__DIR__, 2) . '/config/app.php';
 $pageTitle = 'Data Barang';
 $errors = [];
 $filterKondisi = trim($_GET['kondisi'] ?? '');
+$labelCollapseOpen = ($_GET['labels'] ?? '') === 'open';
 $labelMasters = get_master_barang_labels($pdo);
 $labelColorMap = get_barang_label_map($pdo);
 $labelOptions = array_map(static fn (array $row): string => (string) ($row['nama_label'] ?? ''), $labelMasters);
@@ -24,7 +25,7 @@ if (is_post()) {
 
             if (!$label) {
                 set_flash('danger', 'Label barang tidak ditemukan.');
-                redirect('modules/barang/index.php');
+                redirect('modules/barang/index.php?labels=open');
             }
 
             $usedCount = (int) fetch_scalar($pdo, 'SELECT COUNT(*) FROM barang WHERE label_barang = :label', [
@@ -33,13 +34,13 @@ if (is_post()) {
 
             if ($usedCount > 0) {
                 set_flash('danger', 'Label tidak dapat dihapus karena masih dipakai oleh data barang.');
-                redirect('modules/barang/index.php');
+                redirect('modules/barang/index.php?labels=open');
             }
 
             $statement = $pdo->prepare('DELETE FROM master_label_barang WHERE id = :id');
             $statement->execute(['id' => $labelId]);
             set_flash('success', 'Label barang berhasil dihapus.');
-            redirect('modules/barang/index.php');
+            redirect('modules/barang/index.php?labels=open');
         }
 
         if ($namaLabel === '') {
@@ -59,6 +60,10 @@ if (is_post()) {
             $errors[] = 'Nama label sudah digunakan.';
         }
 
+        if ($errors) {
+            $labelCollapseOpen = true;
+        }
+
         if (!$errors && $action === 'create_label') {
             $statement = $pdo->prepare('
                 INSERT INTO master_label_barang (nama_label, warna_label, created_at)
@@ -69,7 +74,7 @@ if (is_post()) {
                 'warna_label' => $warnaLabel,
             ]);
             set_flash('success', 'Label barang berhasil ditambahkan.');
-            redirect('modules/barang/index.php');
+            redirect('modules/barang/index.php?labels=open');
         }
 
         if (!$errors && $action === 'update_label' && $labelId > 0) {
@@ -103,12 +108,13 @@ if (is_post()) {
 
                     $pdo->commit();
                     set_flash('success', 'Label barang berhasil diperbarui.');
-                    redirect('modules/barang/index.php');
+                    redirect('modules/barang/index.php?labels=open');
                 } catch (Throwable $throwable) {
                     if ($pdo->inTransaction()) {
                         $pdo->rollBack();
                     }
                     $errors[] = 'Gagal memperbarui label barang.';
+                    $labelCollapseOpen = true;
                 }
             }
         }
@@ -287,7 +293,7 @@ require_once BASE_PATH . '/includes/layout_top.php';
             </button>
         </div>
     </div>
-    <div class="collapse" id="masterLabelBarangCollapse">
+    <div class="collapse <?= $labelCollapseOpen ? 'show' : ''; ?>" id="masterLabelBarangCollapse">
         <div class="card-body pt-0">
             <?php if ($errors): ?>
                 <div class="alert alert-danger">

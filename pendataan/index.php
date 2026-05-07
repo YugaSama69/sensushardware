@@ -10,10 +10,11 @@ $baseAbsoluteUrl = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ?
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Pendataan Inventaris Komputer Rumah Sakit</title>
+    <title>Pendataan Inventaris Komputer - <?= e(APP_NAME); ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="<?= e(url('assets/images/silegit-logo.png')); ?>">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="<?= e(url('assets/css/style.css')); ?>" rel="stylesheet">
 </head>
@@ -21,7 +22,7 @@ $baseAbsoluteUrl = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ?
     <main class="container py-4 py-lg-5 client-scan-shell">
         <div class="client-scan-card client-scan-card-simple shadow-lg">
             <section class="client-scan-simple-head text-center">
-                <img src="<?= e(url('assets/images/siintel-login-logo.png')); ?>" alt="Logo SIINTEL" class="client-scan-logo">
+                <img src="<?= e(url('assets/images/silegit-logo.png')); ?>" alt="Logo SILEGIT" class="client-scan-logo">
                 <span class="client-scan-form-badge">Inventaris IT Rumah Sakit</span>
                 <h1 class="client-scan-simple-title">Pendataan Inventaris Komputer RSUD Welas Asih</h1>
                 <!-- <p class="client-scan-simple-lead">Isi data singkat di bawah ini, lalu jalankan launcher untuk membaca spesifikasi komputer dan mengirimkannya langsung ke sistem inventaris.</p> -->

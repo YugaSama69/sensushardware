@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 date_default_timezone_set('Asia/Jakarta');
 
-define('APP_NAME', 'Sistem Sensus Hardware & Inventaris Elektronik');
+define('APP_NAME', 'SILEGIT');
 define('BASE_PATH', dirname(__DIR__));
 
 if (session_status() !== PHP_SESSION_ACTIVE) {

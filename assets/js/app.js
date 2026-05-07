@@ -184,49 +184,137 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.querySelectorAll('.room-filter-form').forEach(function (form) {
         const roomSelect = form.querySelector('[data-room-filter]');
-        const itemSelect = form.querySelector('[data-item-select]');
+        const itemSearch = form.querySelector('[data-item-search]');
+        const itemHidden = form.querySelector('[data-item-hidden]');
+        const itemDatalist = form.querySelector('[data-item-datalist]');
+        const itemLabelFilter = form.querySelector('[data-item-label-filter]');
+        const itemConditionFilter = form.querySelector('[data-item-condition-filter]');
 
-        if (!roomSelect || !itemSelect) {
+        if (!itemSearch || !itemHidden || !itemDatalist) {
             return;
         }
 
-        const options = Array.from(itemSelect.querySelectorAll('option'));
-        const hasRoomBoundOptions = options.some(function (option, index) {
-            return index > 0 && option.hasAttribute('data-room-id');
+        const datalistOptions = Array.from(itemDatalist.querySelectorAll('option')).map(function (option) {
+            return {
+                value: option.value,
+                itemId: option.getAttribute('data-item-id') || '',
+                roomId: option.getAttribute('data-room-id') || '',
+                label: option.getAttribute('data-item-label') || '',
+                condition: option.getAttribute('data-item-condition') || ''
+            };
+        });
+        const hasRoomBoundOptions = datalistOptions.some(function (option) {
+            return option.roomId !== '';
         });
 
-        if (!hasRoomBoundOptions) {
-            itemSelect.disabled = false;
-            return;
-        }
+        const normalizeText = function (value) {
+            return (value || '').trim().toLowerCase();
+        };
 
-        const filterItems = function () {
-            const selectedRoom = roomSelect.value;
+        const syncHiddenItemValue = function () {
+            const selectedValue = normalizeText(itemSearch.value);
+
+            if (selectedValue === '') {
+                itemHidden.value = '';
+                itemSearch.setCustomValidity('');
+                return;
+            }
+
+            const selectedRoom = roomSelect ? roomSelect.value : '';
+            const selectedLabel = itemLabelFilter ? normalizeText(itemLabelFilter.value) : '';
+            const selectedCondition = itemConditionFilter ? normalizeText(itemConditionFilter.value) : '';
+            const matchedOption = datalistOptions.find(function (option) {
+                const matchesRoom = selectedRoom === '' || option.roomId === '' || option.roomId === selectedRoom;
+                const matchesLabel = selectedLabel === '' || normalizeText(option.label) === selectedLabel;
+                const matchesCondition = selectedCondition === '' || normalizeText(option.condition) === selectedCondition;
+                return matchesRoom && matchesLabel && matchesCondition && normalizeText(option.value) === selectedValue;
+            });
+
+            itemHidden.value = matchedOption ? matchedOption.itemId : '';
+            itemSearch.setCustomValidity(matchedOption ? '' : 'Pilih barang dari daftar yang tersedia.');
+        };
+
+        const renderDatalistOptions = function (searchTerm, selectedRoom, selectedLabel, selectedCondition) {
+            itemDatalist.innerHTML = '';
             let hasVisibleItems = false;
 
-            options.forEach(function (option, index) {
-                if (index === 0) {
-                    option.hidden = false;
+            datalistOptions.forEach(function (option) {
+                const matchesRoom = selectedRoom === '' || option.roomId === '' || option.roomId === selectedRoom;
+                const matchesLabel = selectedLabel === '' || normalizeText(option.label) === selectedLabel;
+                const matchesCondition = selectedCondition === '' || normalizeText(option.condition) === selectedCondition;
+                const matchesSearch = searchTerm === '' || normalizeText(option.value).indexOf(searchTerm) !== -1;
+
+                if (!matchesRoom || !matchesLabel || !matchesCondition || !matchesSearch) {
                     return;
                 }
 
-                const roomId = option.getAttribute('data-room-id');
-                const shouldShow = selectedRoom === '' || roomId === selectedRoom;
-                option.hidden = !shouldShow;
-
-                if (!shouldShow && option.selected) {
-                    itemSelect.value = '';
+                hasVisibleItems = true;
+                const optionElement = document.createElement('option');
+                optionElement.value = option.value;
+                optionElement.setAttribute('data-item-id', option.itemId);
+                if (option.roomId !== '') {
+                    optionElement.setAttribute('data-room-id', option.roomId);
                 }
-
-                if (shouldShow) {
-                    hasVisibleItems = true;
+                if (option.label !== '') {
+                    optionElement.setAttribute('data-item-label', option.label);
                 }
+                if (option.condition !== '') {
+                    optionElement.setAttribute('data-item-condition', option.condition);
+                }
+                itemDatalist.appendChild(optionElement);
             });
 
-            itemSelect.disabled = selectedRoom === '' || !hasVisibleItems;
+            return hasVisibleItems;
         };
 
-        roomSelect.addEventListener('change', filterItems);
+        const filterItems = function () {
+            const selectedRoom = roomSelect ? roomSelect.value : '';
+            const searchTerm = normalizeText(itemSearch.value);
+            const selectedLabel = itemLabelFilter ? normalizeText(itemLabelFilter.value) : '';
+            const selectedCondition = itemConditionFilter ? normalizeText(itemConditionFilter.value) : '';
+            const hasVisibleItems = renderDatalistOptions(searchTerm, selectedRoom, selectedLabel, selectedCondition);
+            const shouldDisableSearch = hasRoomBoundOptions && selectedRoom === '';
+
+            itemSearch.disabled = shouldDisableSearch;
+            if (shouldDisableSearch) {
+                itemSearch.value = '';
+                itemHidden.value = '';
+                itemSearch.setCustomValidity('');
+            }
+
+            if (!hasVisibleItems && !shouldDisableSearch) {
+                itemHidden.value = '';
+            }
+
+            syncHiddenItemValue();
+        };
+
+        if (roomSelect) {
+            roomSelect.addEventListener('change', filterItems);
+        }
+
+        if (itemLabelFilter) {
+            itemLabelFilter.addEventListener('change', filterItems);
+        }
+
+        if (itemConditionFilter) {
+            itemConditionFilter.addEventListener('change', filterItems);
+        }
+
+        if (itemSearch) {
+            itemSearch.addEventListener('input', filterItems);
+            itemSearch.addEventListener('change', syncHiddenItemValue);
+        }
+
+        form.addEventListener('submit', function (event) {
+            syncHiddenItemValue();
+
+            if (itemSearch.value.trim() !== '' && itemHidden.value === '') {
+                event.preventDefault();
+                itemSearch.reportValidity();
+            }
+        });
+
         filterItems();
     });
 

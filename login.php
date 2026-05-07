@@ -38,6 +38,7 @@ if (is_post()) {
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="<?= e(url('assets/images/silegit-logo.png')); ?>">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="<?= e(url('assets/css/style.css')); ?>" rel="stylesheet">
 </head>
@@ -52,11 +53,11 @@ if (is_post()) {
                                 
                             </div>
                             <div class="login-cover-logo-wrap text-center">
-                                <img src="<?= e(url('assets/images/siintel-login-logo.png')); ?>" alt="Logo SIINTEL" class="img-fluid login-cover-logo">
+                                <img src="<?= e(url('assets/images/silegit-login-fullhd.png')); ?>" alt="Logo SILEGIT" class="img-fluid login-cover-logo">
                             </div>
                             <div>
-                                <h1 class="display-6 fw-bold mb-3">Sistem Sensus Hardware & Inventaris Elektronik</h1>
-                                <p class="mb-0 text-white-50">Catat stok barang, mutasi masuk-keluar, histori lengkap, dan laporan tiap ruangan dalam satu dashboard yang ringkas.</p>
+                                <h1 class="display-9 fw-bold mb-4"> Sistem Laporan, Evaluasi, Governance & Inventaris </h1>
+                                <p class="mb-0 text-white-50">Catat stok barang, mutasi masuk-keluar, histori lengkap, dan laporan pengembangan dalam satu dashboard yang ringkas.</p>
                             </div>
                         </div>
                     </div>
@@ -65,7 +66,7 @@ if (is_post()) {
                             <div class="login-form-panel">
                                 <div class="mb-4">
                                     <!-- <span class="login-form-badge">Secure Admin Portal</span> -->
-                                    <h2 class="fw-bold mb-2 login-neon-title">WELCOME SI INTEL</h2>
+                                    <h2 class="fw-bold mb-2 login-neon-title">WELCOME SILEGIT</h2>
                                     <div class="login-neon-line mb-3"></div>
                                     <!-- <p class="login-form-subtitle mb-0">Masuk untuk mengelola inventaris hardware, komputer client, dan laporan operasional dalam satu dashboard.</p> -->
                                 </div>

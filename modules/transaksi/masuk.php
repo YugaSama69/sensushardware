@@ -240,10 +240,26 @@ if (is_post()) {
 
 $items = fetch_all(
     $pdo,
-    'SELECT b.id, b.nama_barang, b.qty, b.kondisi, b.keterangan AS keterangan_barang
+    'SELECT b.id, b.kode_barang, b.nama_barang, b.qty, b.label_barang, b.kondisi, b.keterangan AS keterangan_barang
      FROM barang b
      ORDER BY b.nama_barang ASC'
 );
+$labelOptions = array_map(
+    static fn (array $row): string => (string) ($row['nama_label'] ?? ''),
+    get_master_barang_labels($pdo)
+);
+$itemDisplayMap = [];
+foreach ($items as $itemOption) {
+    $itemDisplayMap[(int) $itemOption['id']] = sprintf(
+        '%s | %s | %s | stok: %s',
+        (string) $itemOption['kode_barang'],
+        (string) $itemOption['nama_barang'],
+        (string) $itemOption['label_barang'],
+        (string) $itemOption['kondisi'],
+        (string) $itemOption['qty']
+    );
+}
+$selectedBarangLookup = trim($_POST['barang_lookup'] ?? ($itemDisplayMap[(int) ($_POST['barang_id'] ?? 0)] ?? ''));
 $rooms = fetch_all($pdo, 'SELECT id, nama_ruangan FROM ruangan ORDER BY nama_ruangan ASC');
 $recentEntries = fetch_all(
     $pdo,
@@ -288,17 +304,52 @@ require_once BASE_PATH . '/includes/layout_top.php';
                             <?php endforeach; ?>
                         </select>
                     </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Filter Label Barang</label>
+                            <select class="form-select" data-item-label-filter>
+                                <option value="">Semua label</option>
+                                <?php foreach ($labelOptions as $labelOption): ?>
+                                    <option value="<?= e($labelOption); ?>"><?= e($labelOption); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Filter Kondisi Barang</label>
+                            <select class="form-select" data-item-condition-filter>
+                                <option value="">Semua kondisi</option>
+                                <?php foreach (['Baik', 'Rusak', 'Perbaikan'] as $condition): ?>
+                                    <option value="<?= e($condition); ?>"><?= e($condition); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
                     <div class="mb-3">
                         <label class="form-label">Pilih Barang</label>
-                        <select name="barang_id" class="form-select" data-item-select required>
-                            <option value="">Pilih barang</option>
+                        <input type="hidden" name="barang_id" value="<?= e((string) ($_POST['barang_id'] ?? '')); ?>" data-item-hidden>
+                        <input
+                            type="text"
+                            name="barang_lookup"
+                            class="form-control"
+                            list="barangMasukLookup"
+                            placeholder="Cari dan pilih barang"
+                            value="<?= e($selectedBarangLookup); ?>"
+                            data-item-search
+                            autocomplete="off"
+                            required
+                        >
+                        <datalist id="barangMasukLookup" data-item-datalist>
                             <?php foreach ($items as $item): ?>
-                                <option value="<?= $item['id']; ?>" <?= (int) ($_POST['barang_id'] ?? 0) === (int) $item['id'] ? 'selected' : ''; ?>>
-                                    <?= e($item['nama_barang']); ?> - <?= e($item['kondisi']); ?> (stok: <?= e((string) $item['qty']); ?>)
-                                </option>
+                                <?php $itemDisplay = $itemDisplayMap[(int) $item['id']] ?? $item['nama_barang']; ?>
+                                <option
+                                    value="<?= e($itemDisplay); ?>"
+                                    data-item-id="<?= e((string) $item['id']); ?>"
+                                    data-item-label="<?= e((string) ($item['label_barang'] ?? '')); ?>"
+                                    data-item-condition="<?= e((string) ($item['kondisi'] ?? '')); ?>"
+                                ></option>
                             <?php endforeach; ?>
-                        </select>
-                        <div class="form-text">Pilih barang, lalu transaksi akan dicatat ke ruangan yang Anda pilih di atas.</div>
+                        </datalist>
+                        <div class="form-text">Gunakan filter barang agar daftar saran lebih detail sebelum memilih barang masuk.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Jumlah Tambah</label>

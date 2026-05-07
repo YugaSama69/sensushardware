@@ -1,6 +1,6 @@
-# Sistem Sensus Hardware & Inventaris Elektronik
+# SILEGIT
 
-Aplikasi web inventaris berbasis PHP native + MySQL untuk mencatat data barang, ruangan, transaksi stok masuk/keluar, histori, laporan, dan export.
+Aplikasi web inventaris berbasis PHP native + MySQL untuk mencatat data barang, ruangan, transaksi stok masuk/keluar, histori, laporan, pendataan komputer client, dan export.
 
 ## Fitur
 
