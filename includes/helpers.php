@@ -2,6 +2,27 @@
 
 declare(strict_types=1);
 
+if (!function_exists('str_contains')) {
+    function str_contains(string $haystack, string $needle): bool
+    {
+        return $needle !== '' && strpos($haystack, $needle) !== false;
+    }
+}
+
+if (!function_exists('str_starts_with')) {
+    function str_starts_with(string $haystack, string $needle): bool
+    {
+        return $needle !== '' && substr($haystack, 0, strlen($needle)) === $needle;
+    }
+}
+
+if (!function_exists('str_ends_with')) {
+    function str_ends_with(string $haystack, string $needle): bool
+    {
+        return $needle !== '' && substr($haystack, -strlen($needle)) === $needle;
+    }
+}
+
 function url(string $path = ''): string
 {
     $path = ltrim($path, '/');
@@ -136,12 +157,12 @@ function day_name_id(?string $date): string
     return $days[$english] ?? $english;
 }
 
-function format_number(int|float|string $value): string
+function format_number($value): string
 {
     return number_format((float) $value, 0, ',', '.');
 }
 
-function format_percentage(int|float|string|null $value): string
+function format_percentage($value): string
 {
     $normalized = str_replace(',', '.', str_replace('%', '', (string) ($value ?? '0')));
     $formatted = rtrim(rtrim(number_format((float) $normalized, 2, '.', ''), '0'), '.');
@@ -199,11 +220,14 @@ function normalize_os_group_label(?string $value): ?string
 
 function condition_badge(string $condition): string
 {
-    return match ($condition) {
-        'Baik' => 'success',
-        'Rusak' => 'danger',
-        default => 'warning',
-    };
+    switch ($condition) {
+        case 'Baik':
+            return 'success';
+        case 'Rusak':
+            return 'danger';
+        default:
+            return 'warning';
+    }
 }
 
 function transaction_badge(string $type): string
@@ -221,7 +245,7 @@ function is_active_menu(string $needle): bool
     return str_contains(current_path(), $needle);
 }
 
-function fetch_scalar(PDO $pdo, string $sql, array $params = []): mixed
+function fetch_scalar(PDO $pdo, string $sql, array $params = [])
 {
     $statement = $pdo->prepare($sql);
     $statement->execute($params);

@@ -1,0 +1,3 @@
+RewriteEngine On
+
+RewriteRule ^upload/?$ upload/index.php [L,QSA]

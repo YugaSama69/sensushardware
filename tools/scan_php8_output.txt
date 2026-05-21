@@ -1,0 +1,70 @@
+﻿C:\laragon\www\sensushardware\application\config\config.php:220: | 	array(2) = Debug Messages, without Error Messages
+C:\laragon\www\sensushardware\application\config\config.php:310: |	array('q') = Enabled, but only take into account the specified list
+C:\laragon\www\sensushardware\application\config\config.php:521: | Array:		array('10.0.1.200', '192.168.5.0/24')
+C:\laragon\www\sensushardware\application\helpers\polyfills_helper.php:6:     function str_contains(string $haystack, string $needle): bool
+C:\laragon\www\sensushardware\application\helpers\polyfills_helper.php:13:     function str_starts_with(string $haystack, string $needle): bool
+C:\laragon\www\sensushardware\application\helpers\polyfills_helper.php:20:     function str_ends_with(string $haystack, string $needle): bool
+C:\laragon\www\sensushardware\system\core\Config.php:195: 	 * @return	string|null	The configuration item or NULL if the item doesn't exist
+C:\laragon\www\sensushardware\system\core\Config.php:213: 	 * @return	string|null	The configuration item or NULL if the item doesn't exist
+C:\laragon\www\sensushardware\system\core\Config.php:238: 	 * @param	string|string[]	$uri	URI string or an array of segments
+C:\laragon\www\sensushardware\system\core\Config.php:301: 	 * @param	string|string[]	$uri	URI string or an array of segments
+C:\laragon\www\sensushardware\system\core\Config.php:333: 	 * @param	string|string[]	$uri	URI string or an array of segments
+C:\laragon\www\sensushardware\system\core\Exceptions.php:151: 	 * @param	string|string[]	$message	Error message
+C:\laragon\www\sensushardware\system\core\Input.php:580: 	 * @return	string|null	User Agent string or NULL if it doesn't exist
+C:\laragon\www\sensushardware\system\core\Input.php:665: 	 * @param	string|string[]	$str	Input string(s)
+C:\laragon\www\sensushardware\system\core\Input.php:721: 	 * @return	string|bool
+C:\laragon\www\sensushardware\system\core\Input.php:798: 	 * @return	string|null	The requested header on success or NULL on failure
+C:\laragon\www\sensushardware\system\core\Lang.php:86: 	 * @return	void|string[]	Array containing translations, if $return is set to TRUE
+C:\laragon\www\sensushardware\system\core\Loader.php:170: 	 * @return 	string|bool	Class object name if loaded or FALSE
+C:\laragon\www\sensushardware\system\core\Loader.php:373: 	 * @return	object|bool	Database object if $return is set to TRUE,
+C:\laragon\www\sensushardware\system\core\Loader.php:491: 	 * @return	object|string
+C:\laragon\www\sensushardware\system\core\Loader.php:505: 	 * @return	object|string
+C:\laragon\www\sensushardware\system\core\Loader.php:520: 	 * @param	array|object|string	$vars
+C:\laragon\www\sensushardware\system\core\Loader.php:589: 	 * @param	string|string[]	$helpers	Helper name(s)
+C:\laragon\www\sensushardware\system\core\Loader.php:666: 	 * @param	string|string[]	$helpers	Helper name(s)
+C:\laragon\www\sensushardware\system\core\Loader.php:681: 	 * @param	string|string[]	$files	List of language file names to load
+C:\laragon\www\sensushardware\system\core\Loader.php:716: 	 * @param	string|string[]	$library	Driver name(s)
+C:\laragon\www\sensushardware\system\core\Loader.php:720: 	 * @return	object|bool	Object or FALSE on failure if $library is a string
+C:\laragon\www\sensushardware\system\core\Loader.php:1191: 	 * @param	array|null|bool	$config		Optional configuration to pass to the class constructor:
+C:\laragon\www\sensushardware\system\core\Security.php:351: 	 * @param	string|string[]	$str		Input data
+C:\laragon\www\sensushardware\system\database\drivers\cubrid\cubrid_forge.php:103: 	 * @return	string|string[]
+C:\laragon\www\sensushardware\system\database\drivers\ibase\ibase_driver.php:394: 	 * @return	string|bool
+C:\laragon\www\sensushardware\system\database\drivers\ibase\ibase_forge.php:140: 	 * @return	string|string[]
+C:\laragon\www\sensushardware\system\database\drivers\mssql\mssql_driver.php:493: 	 * @return	string|bool
+C:\laragon\www\sensushardware\system\database\drivers\mssql\mssql_forge.php:85: 	 * @return	string|string[]
+C:\laragon\www\sensushardware\system\database\drivers\mysql\mysql_forge.php:134: 	 * @return	string|string[]
+C:\laragon\www\sensushardware\system\database\drivers\mysqli\mysqli_forge.php:136: 	 * @return	string|string[]
+C:\laragon\www\sensushardware\system\database\drivers\oci8\oci8_forge.php:80: 	 * @var	bool|array
+C:\laragon\www\sensushardware\system\database\drivers\oci8\oci8_forge.php:99: 	 * @return	string|string[]
+C:\laragon\www\sensushardware\system\database\drivers\odbc\odbc_forge.php:68: 	 * @var	bool|array
+C:\laragon\www\sensushardware\system\database\drivers\pdo\subdrivers\pdo_4d_forge.php:111: 	 * @return	string|string[]
+C:\laragon\www\sensushardware\system\database\drivers\pdo\subdrivers\pdo_cubrid_forge.php:103: 	 * @return	string|string[]
+C:\laragon\www\sensushardware\system\database\drivers\pdo\subdrivers\pdo_dblib_driver.php:324: 	 * @return	string|bool
+C:\laragon\www\sensushardware\system\database\drivers\pdo\subdrivers\pdo_dblib_forge.php:83: 	 * @return	string|string[]
+C:\laragon\www\sensushardware\system\database\drivers\pdo\subdrivers\pdo_firebird_driver.php:273: 	 * @return	string|bool
+C:\laragon\www\sensushardware\system\database\drivers\pdo\subdrivers\pdo_firebird_forge.php:126: 	 * @return	string|string[]
+C:\laragon\www\sensushardware\system\database\drivers\pdo\subdrivers\pdo_ibm_forge.php:82: 	 * @return	string|string[]
+C:\laragon\www\sensushardware\system\database\drivers\pdo\subdrivers\pdo_informix_forge.php:84: 	 * @return	string|string[]
+C:\laragon\www\sensushardware\system\database\drivers\pdo\subdrivers\pdo_mysql_forge.php:148: 	 * @return	string|string[]
+C:\laragon\www\sensushardware\system\database\drivers\pdo\subdrivers\pdo_oci_forge.php:73: 	 * @var	bool|array
+C:\laragon\www\sensushardware\system\database\drivers\pdo\subdrivers\pdo_oci_forge.php:92: 	 * @return	string|string[]
+C:\laragon\www\sensushardware\system\database\drivers\pdo\subdrivers\pdo_odbc_forge.php:52: 	 * @var	bool|array
+C:\laragon\www\sensushardware\system\database\drivers\pdo\subdrivers\pdo_pgsql_forge.php:106: 	 * @return	string|string[]
+C:\laragon\www\sensushardware\system\database\drivers\pdo\subdrivers\pdo_sqlite_forge.php:66: 	 * @var	bool|array
+C:\laragon\www\sensushardware\system\database\drivers\pdo\subdrivers\pdo_sqlite_forge.php:153: 	 * @return	string|string[]
+C:\laragon\www\sensushardware\system\database\drivers\pdo\subdrivers\pdo_sqlsrv_driver.php:356: 	 * @return	string|bool
+C:\laragon\www\sensushardware\system\database\drivers\pdo\subdrivers\pdo_sqlsrv_forge.php:83: 	 * @return	string|string[]
+C:\laragon\www\sensushardware\system\database\drivers\postgre\postgre_forge.php:101: 	 * @return	string|string[]
+C:\laragon\www\sensushardware\system\database\drivers\sqlite\sqlite_forge.php:59: 	 * @var	bool|array
+C:\laragon\www\sensushardware\system\database\drivers\sqlite\sqlite_forge.php:120: 	 * @return	string|string[]
+C:\laragon\www\sensushardware\system\database\drivers\sqlite3\sqlite3_forge.php:52: 	 * @var	bool|array
+C:\laragon\www\sensushardware\system\database\drivers\sqlite3\sqlite3_forge.php:140: 	 * @return	string|string[]
+C:\laragon\www\sensushardware\system\database\drivers\sqlsrv\sqlsrv_driver.php:518: 	 * @return	string|bool
+C:\laragon\www\sensushardware\system\database\drivers\sqlsrv\sqlsrv_forge.php:83: 	 * @return	string|string[]
+C:\laragon\www\sensushardware\system\database\DB.php:47:  * @param 	string|string[]	$params
+C:\laragon\www\sensushardware\system\database\DB_driver.php:1127: 	 * @param	string|string[]	$str	Input string
+C:\laragon\www\sensushardware\system\database\DB_driver.php:1166: 	 * @param	string|string[]
+C:\laragon\www\sensushardware\system\database\DB_forge.php:141: 	 * @var	bool|array
+C:\laragon\www\sensushardware\system\database\DB_forge.php:669: 	 * @return	string|string[]
+C:\laragon\www\sensushardware\system\helpers\form_helper.php:687: 	 * @param	string|string[]	$str		Value to escape
+C:\laragon\www\sensushardware\system\helpers\form_helper.php:688: 	 * @return	string|string[]	Escaped values

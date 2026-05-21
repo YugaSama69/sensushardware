@@ -4,11 +4,12 @@ require_login();
 require_module_access();
 
 $pageTitle = $pageTitle ?? APP_NAME;
+$pageSubtitle = $pageSubtitle ?? 'Kelola inventaris hardware dan elektronik secara real-time.';
 $lowStockItems = get_low_stock_items($pdo);
 $currentUser = current_user();
 $flash = get_flash();
 $isAdminUser = is_admin_user();
-$showLowStockAlert = !is_active_menu('/modules/pengembangan/');
+$showLowStockAlert = !is_active_menu('/modules/pengembangan/') && !is_active_menu('/modules/monitoring_ruangan/');
 ?><!doctype html>
 <html lang="id">
 <head>
@@ -18,7 +19,7 @@ $showLowStockAlert = !is_active_menu('/modules/pengembangan/');
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/png" href="<?= e(url('assets/images/silegit-logo.png')); ?>">
+    <link rel="icon" type="image/png" href="<?= e(url(APP_FAVICON_PATH)); ?>">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css" rel="stylesheet">
@@ -33,7 +34,7 @@ $showLowStockAlert = !is_active_menu('/modules/pengembangan/');
         <aside class="sidebar d-none d-xl-flex flex-column">
             <div class="sidebar-brand">
                 <div class="brand-mark">
-                    <img src="<?= e(url('assets/images/silegit-logo.png')); ?>" alt="Logo SILEGIT" class="brand-logo">
+                    <img src="<?= e(url(APP_LOGO_PATH)); ?>" alt="Logo SiAEGIS" class="brand-logo">
                 </div>
                 <div>
                     <h1><?= e(APP_NAME); ?></h1>
@@ -53,6 +54,7 @@ $showLowStockAlert = !is_active_menu('/modules/pengembangan/');
                     <a class="nav-link <?= is_active_menu('/modules/komputer/') ? 'active' : ''; ?>" href="<?= e(url('modules/komputer/index.php')); ?>">Komputer Client</a>
                     <a class="nav-link <?= is_active_menu('/modules/kondisi_komputer/') ? 'active' : ''; ?>" href="<?= e(url('modules/kondisi_komputer/index.php')); ?>">Data Kondisi Komputer</a>
                     <a class="nav-link <?= is_active_menu('/modules/mutasi_komputer/') ? 'active' : ''; ?>" href="<?= e(url('modules/mutasi_komputer/index.php')); ?>">Mutasi Komputer</a>
+                    <a class="nav-link <?= is_active_menu('/modules/monitoring_ruangan/') ? 'active' : ''; ?>" href="<?= e(url('modules/monitoring_ruangan/dashboard.php')); ?>">Monitoring Ruangan Server</a>
                 <?php endif; ?>
                 <a class="nav-link <?= is_active_menu('/modules/pengembangan/') ? 'active' : ''; ?>" href="<?= e(url('modules/pengembangan/index.php')); ?>">Laporan Pengembangan</a>
             </nav>
@@ -68,7 +70,7 @@ $showLowStockAlert = !is_active_menu('/modules/pengembangan/');
                     </button>
                     <div>
                         <h2 class="mb-0"><?= e($pageTitle); ?></h2>
-                        <small class="text-muted">Kelola inventaris hardware dan elektronik secara real-time.</small>
+                        <small class="text-muted"><?= e($pageSubtitle); ?></small>
                     </div>
                 </div>
                 <div class="topbar-meta">
@@ -88,7 +90,7 @@ $showLowStockAlert = !is_active_menu('/modules/pengembangan/');
                 <div class="offcanvas-header">
                     <div class="offcanvas-brand">
                         <div class="brand-mark brand-mark-mobile">
-                            <img src="<?= e(url('assets/images/silegit-logo.png')); ?>" alt="Logo SILEGIT" class="brand-logo">
+                            <img src="<?= e(url(APP_LOGO_PATH)); ?>" alt="Logo SiAEGIS" class="brand-logo">
                         </div>
                         <div>
                             <h5 class="offcanvas-title mb-0"><?= e(APP_NAME); ?></h5>
@@ -110,6 +112,7 @@ $showLowStockAlert = !is_active_menu('/modules/pengembangan/');
                             <a class="nav-link <?= is_active_menu('/modules/komputer/') ? 'active' : ''; ?>" href="<?= e(url('modules/komputer/index.php')); ?>">Komputer Client</a>
                             <a class="nav-link <?= is_active_menu('/modules/kondisi_komputer/') ? 'active' : ''; ?>" href="<?= e(url('modules/kondisi_komputer/index.php')); ?>">Data Kondisi Komputer</a>
                             <a class="nav-link <?= is_active_menu('/modules/mutasi_komputer/') ? 'active' : ''; ?>" href="<?= e(url('modules/mutasi_komputer/index.php')); ?>">Mutasi Komputer</a>
+                            <a class="nav-link <?= is_active_menu('/modules/monitoring_ruangan/') ? 'active' : ''; ?>" href="<?= e(url('modules/monitoring_ruangan/dashboard.php')); ?>">Monitoring Ruangan Server</a>
                         <?php endif; ?>
                         <a class="nav-link <?= is_active_menu('/modules/pengembangan/') ? 'active' : ''; ?>" href="<?= e(url('modules/pengembangan/index.php')); ?>">Laporan Pengembangan</a>
                         <a class="nav-link text-danger" href="<?= e(url('logout.php')); ?>">Logout</a>

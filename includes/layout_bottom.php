@@ -8,6 +8,12 @@
     <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
     <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
     <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
+    <?php foreach (($pageScriptUrls ?? []) as $pageScriptUrl): ?>
+        <script src="<?= e($pageScriptUrl); ?>"></script>
+    <?php endforeach; ?>
     <script src="<?= e(url('assets/js/app.js')); ?>"></script>
+    <?php if (!empty($pageScripts)): ?>
+        <script><?= $pageScripts; ?></script>
+    <?php endif; ?>
 </body>
 </html>

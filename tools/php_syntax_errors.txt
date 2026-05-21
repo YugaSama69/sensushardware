@@ -1,0 +1,13 @@
+﻿
+Fatal error: Array and string offset access syntax with curly braces is no longer supported in C:\laragon\www\sensushardware\system\libraries\Profiler.php on line 108
+php.exe : PHP Fatal error:  Array and string offset access syntax with curly 
+braces is no longer supported in 
+C:\laragon\www\sensushardware\system\libraries\Profiler.php on line 108
+At C:\xampp\htdocs\sensushardware\tools\check_php_syntax_laragon.ps1:6 char:12
++     $out = & 'C:\xampp\php\php.exe' -l $f 2>&1
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (PHP Fatal error...php on line 108 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Errors parsing C:\laragon\www\sensushardware\system\libraries\Profiler.php

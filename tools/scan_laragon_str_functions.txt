@@ -1,0 +1,3 @@
+﻿C:\laragon\www\sensushardware\application\helpers\polyfills_helper.php:13:     function str_starts_with(string $haystack, string $needle): bool
+C:\laragon\www\sensushardware\application\helpers\polyfills_helper.php:20:     function str_ends_with(string $haystack, string $needle): bool
+C:\laragon\www\sensushardware\application\helpers\polyfills_helper.php:6:     function str_contains(string $haystack, string $needle): bool

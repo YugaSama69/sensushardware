@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 date_default_timezone_set('Asia/Jakarta');
 
-define('APP_NAME', 'SILEGIT');
+define('APP_NAME', 'Sistem Informasi Aset, Equipment, Governance, Infrastructure & Server');
 define('BASE_PATH', dirname(__DIR__));
+define('APP_LOGO_PATH', 'assets/images/siaegis-logo-main.png');
+define('APP_FAVICON_PATH', APP_LOGO_PATH);
 
 if (session_status() !== PHP_SESSION_ACTIVE) {
     $sessionPath = BASE_PATH . '/storage/sessions';

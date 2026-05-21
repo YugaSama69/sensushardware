@@ -1,0 +1,1 @@
+CREATE DATABASE IF NOT EXISTS admin_simrs CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

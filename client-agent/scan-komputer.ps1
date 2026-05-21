@@ -125,6 +125,103 @@ function Join-DeviceNames {
     return ($Items | Where-Object { $_ } | Select-Object -Unique) -join ', '
 }
 
+function Get-Ipv4NetworkDetails {
+    $result = [ordered]@{
+        PrimaryIp       = '-'
+        AllIps          = @()
+        NetworkAdapters = @()
+    }
+
+    $entries = @()
+
+    try {
+        if (Get-Command Get-NetIPConfiguration -ErrorAction SilentlyContinue) {
+            $configs = @(Get-NetIPConfiguration | Where-Object { $_.IPv4Address })
+            foreach ($config in $configs) {
+                $adapterName = ''
+                if ($config.InterfaceAlias) {
+                    $adapterName = [string]$config.InterfaceAlias
+                } elseif ($config.InterfaceDescription) {
+                    $adapterName = [string]$config.InterfaceDescription
+                }
+
+                $gateway = if ($config.IPv4DefaultGateway -and $config.IPv4DefaultGateway.NextHop) { [string]$config.IPv4DefaultGateway.NextHop } else { '' }
+
+                foreach ($ipv4 in @($config.IPv4Address)) {
+                    $ipAddress = if ($ipv4 -and $ipv4.IPAddress) { [string]$ipv4.IPAddress } else { '' }
+                    if ($ipAddress -notmatch '^\d{1,3}(\.\d{1,3}){3}$' -or $ipAddress -match '^127\.') {
+                        continue
+                    }
+
+                    $entries += [pscustomobject]@{
+                        IPAddress   = $ipAddress
+                        AdapterName = $adapterName
+                        HasGateway  = ($gateway -ne '')
+                    }
+                }
+            }
+        }
+    } catch {
+        # Fallback ke WMI di bawah.
+    }
+
+    if ($entries.Count -eq 0) {
+        $networkAdapters = @(Get-SystemInstance -ClassName 'Win32_NetworkAdapterConfiguration' |
+            Where-Object { $_.IPEnabled -eq $true -and $_.MACAddress })
+
+        foreach ($adapter in $networkAdapters) {
+            foreach ($ipAddress in @($adapter.IPAddress)) {
+                $ipAddress = [string]$ipAddress
+                if ($ipAddress -notmatch '^\d{1,3}(\.\d{1,3}){3}$' -or $ipAddress -match '^127\.') {
+                    continue
+                }
+
+                $entries += [pscustomobject]@{
+                    IPAddress   = $ipAddress
+                    AdapterName = [string]$adapter.Description
+                    HasGateway  = (@($adapter.DefaultIPGateway).Count -gt 0)
+                }
+            }
+        }
+    }
+
+    $entries = @(
+        $entries |
+            Sort-Object -Property @{ Expression = { if ($_.HasGateway) { 0 } else { 1 } } }, IPAddress |
+            Select-Object -Unique IPAddress, AdapterName, HasGateway
+    )
+
+    if ($entries.Count -gt 0) {
+        $result.PrimaryIp = [string]$entries[0].IPAddress
+        $result.AllIps = @($entries | ForEach-Object { $_.IPAddress } | Select-Object -Unique)
+
+        $grouped = @{}
+        foreach ($entry in $entries) {
+            $adapterName = if ([string]::IsNullOrWhiteSpace([string]$entry.AdapterName)) { 'Adapter' } else { [string]$entry.AdapterName }
+            if (-not $grouped.ContainsKey($adapterName)) {
+                $grouped[$adapterName] = New-Object System.Collections.ArrayList
+            }
+
+            if (-not $grouped[$adapterName].Contains([string]$entry.IPAddress)) {
+                [void]$grouped[$adapterName].Add([string]$entry.IPAddress)
+            }
+        }
+
+        $networkAdaptersPayload = @()
+        foreach ($adapterName in $grouped.Keys) {
+            $networkAdaptersPayload += @{
+                adapter_name = $adapterName
+                status = 'active'
+                ip_addresses = @($grouped[$adapterName])
+            }
+        }
+
+        $result.NetworkAdapters = @($networkAdaptersPayload)
+    }
+
+    return $result
+}
+
 try {
     if ($Kondisi -notin @('Baik', 'Rusak', 'Perbaikan')) {
         throw "Kondisi komputer tidak valid."
@@ -139,12 +236,8 @@ try {
     $network = Get-SystemInstance -ClassName 'Win32_NetworkAdapterConfiguration' |
         Where-Object { $_.IPEnabled -eq $true -and $_.MACAddress } |
         Select-Object -First 1
-
-    $ipAddress = '-'
-    if ($network -and $network.IPAddress) {
-        $ipAddress = ($network.IPAddress | Where-Object { $_ -match '^\d{1,3}(\.\d{1,3}){3}$' } | Select-Object -First 1)
-    }
-
+    $networkDetails = Get-Ipv4NetworkDetails
+    $ipAddress = $networkDetails.PrimaryIp
     $macAddress = if ($network) { $network.MACAddress } else { '-' }
 
     $ssdText = '-'
@@ -189,6 +282,8 @@ try {
         ruangan = $Ruangan
         petugas = $NamaUser
         kondisi = $Kondisi
+        multiple_ip = ($networkDetails.AllIps -join ', ')
+        network_adapters = $networkDetails.NetworkAdapters
     }
 
     $json = $payload | ConvertTo-Json -Depth 4
@@ -198,6 +293,9 @@ try {
         Write-Host 'Data berhasil dikirim.' -ForegroundColor Green
         Write-Host "Hostname: $($payload.hostname)"
         Write-Host "IP      : $($payload.ip_address)"
+        if ($payload.multiple_ip -and $payload.multiple_ip -ne '') {
+            Write-Host "Semua IP: $($payload.multiple_ip)"
+        }
         Write-Host "Ruangan : $Ruangan"
         Write-Host "Tahun   : $TahunInventaris"
         Write-Host "Nama User : $NamaUser"

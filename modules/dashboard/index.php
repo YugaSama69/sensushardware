@@ -1,8 +1,11 @@
 <?php
 
 require_once dirname(__DIR__, 2) . '/config/app.php';
+require_once __DIR__ . '/module.php';
 
 $pageTitle = 'Dashboard';
+$deviceDashboardFilter = dashboard_normalize_device_filter($_GET);
+$deviceStats = dashboard_device_stats($pdo, $deviceDashboardFilter);
 
 $totalBarang = (int) fetch_scalar($pdo, 'SELECT COUNT(*) FROM barang');
 $totalRuangan = (int) fetch_scalar($pdo, 'SELECT COUNT(*) FROM ruangan');
@@ -15,17 +18,18 @@ $barangKeluarBulanIni = (int) fetch_scalar(
     $pdo,
     'SELECT COALESCE(SUM(qty), 0) FROM histori_barang WHERE tipe_transaksi = "keluar" AND MONTH(tanggal) = MONTH(CURRENT_DATE()) AND YEAR(tanggal) = YEAR(CURRENT_DATE())'
 );
-$totalKomputerClient = (int) fetch_scalar($pdo, 'SELECT COUNT(*) FROM komputer_client');
+$totalKomputerClient = (int) fetch_scalar($pdo, 'SELECT COUNT(*) FROM komputer_client WHERE device_type = "CLIENT"');
 $totalKomputerHddOnly = (int) fetch_scalar(
     $pdo,
     'SELECT COUNT(*)
      FROM komputer_client
-     WHERE (ssd IS NULL OR TRIM(ssd) = "" OR TRIM(ssd) = "-")
+     WHERE device_type = "CLIENT"
+       AND (ssd IS NULL OR TRIM(ssd) = "" OR TRIM(ssd) = "-")
        AND hdd IS NOT NULL
        AND TRIM(hdd) <> ""
        AND TRIM(hdd) <> "-"'
 );
-$computerSpecRows = fetch_all($pdo, 'SELECT ram, os_name, tahun_inventaris, kondisi FROM komputer_client');
+$computerSpecRows = fetch_all($pdo, 'SELECT ram, os_name, tahun_inventaris, kondisi FROM komputer_client WHERE device_type = "CLIENT"');
 $ramBreakdown = [];
 $osBreakdown = [];
 $tahunInventarisBreakdown = [];
@@ -100,6 +104,88 @@ $recentHistory = fetch_all(
      LIMIT 8'
 );
 
+$pageScripts = <<<'JS'
+document.addEventListener('DOMContentLoaded', function () {
+    const deviceStatsRoot = document.querySelector('[data-device-dashboard]');
+    if (!deviceStatsRoot) {
+        return;
+    }
+
+    const filterButtons = deviceStatsRoot.querySelectorAll('[data-device-filter]');
+    const generatedAtLabel = deviceStatsRoot.querySelector('[data-device-generated-at]');
+    const statsUrl = deviceStatsRoot.getAttribute('data-stats-url');
+
+    const applyStats = function (stats) {
+        if (!stats) {
+            return;
+        }
+
+        deviceStatsRoot.querySelectorAll('[data-device-stat]').forEach(function (element) {
+            const key = element.getAttribute('data-device-stat');
+            if (Object.prototype.hasOwnProperty.call(stats, key)) {
+                element.textContent = new Intl.NumberFormat('id-ID').format(Number(stats[key] || 0));
+            }
+        });
+
+        if (generatedAtLabel && stats.generated_at) {
+            generatedAtLabel.textContent = 'Update cache: ' + stats.generated_at.replace('T', ' ').replace(/\+.*/, '');
+        }
+    };
+
+    const setActiveFilter = function (filter) {
+        filterButtons.forEach(function (button) {
+            const isActive = button.getAttribute('data-device-filter') === filter;
+            button.classList.toggle('active', isActive);
+            button.classList.toggle('btn-primary', isActive);
+            button.classList.toggle('btn-outline-primary', !isActive);
+        });
+    };
+
+    const fetchStats = function (filter) {
+        if (!statsUrl) {
+            return;
+        }
+
+        deviceStatsRoot.classList.add('opacity-75');
+        fetch(statsUrl + '?device_filter=' + encodeURIComponent(filter), {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(function (response) {
+                return response.json().then(function (data) {
+                    return {
+                        ok: response.ok,
+                        data: data
+                    };
+                });
+            })
+            .then(function (result) {
+                if (!result.ok || !result.data || result.data.success !== true) {
+                    throw new Error('Statistik device belum berhasil dimuat.');
+                }
+
+                applyStats(result.data.stats);
+                setActiveFilter(filter);
+            })
+            .catch(function () {
+                if (generatedAtLabel) {
+                    generatedAtLabel.textContent = 'Statistik device belum berhasil dimuat.';
+                }
+            })
+            .finally(function () {
+                deviceStatsRoot.classList.remove('opacity-75');
+            });
+    };
+
+    filterButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+            fetchStats(button.getAttribute('data-device-filter') || 'ALL');
+        });
+    });
+});
+JS;
+
 require_once BASE_PATH . '/includes/layout_top.php';
 ?>
 
@@ -162,6 +248,88 @@ require_once BASE_PATH . '/includes/layout_top.php';
             <h3><?= format_number($totalKomputerHddOnly); ?></h3>
             <small>Belum SSD dan masih menggunakan HDD</small>
         </a>
+    </div>
+</div>
+
+<div
+    class="card border-0 shadow-sm mb-4"
+    data-device-dashboard
+    data-stats-url="<?= e(url('modules/dashboard/device_stats.php')); ?>"
+>
+    <div class="card-header bg-white border-0 pt-4 pb-0">
+        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+            <div>
+                <h5 class="mb-1">Statistik Device Otomatis</h5>
+                <p class="text-muted mb-0">Ringkasan server dan komputer client dari hasil upload agent inventory.</p>
+            </div>
+            <div class="btn-group" role="group" aria-label="Filter statistik device">
+                <?php foreach (dashboard_device_filter_options() as $filterValue => $filterLabel): ?>
+                    <button
+                        type="button"
+                        class="btn <?= $deviceDashboardFilter === $filterValue ? 'btn-primary active' : 'btn-outline-primary'; ?>"
+                        data-device-filter="<?= e($filterValue); ?>"
+                    ><?= e($filterLabel); ?></button>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row g-4 mb-3">
+            <div class="col-md-6 col-xl-3">
+                <a class="metric-card card-amber d-block text-decoration-none" href="<?= e(url('modules/komputer/index.php?device_type=SERVER')); ?>">
+                    <span>Total Server</span>
+                    <h3 data-device-stat="total_server"><?= format_number($deviceStats['total_server']); ?></h3>
+                    <small>Semua server yang terdata</small>
+                </a>
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <a class="metric-card card-sky d-block text-decoration-none" href="<?= e(url('modules/komputer/index.php?device_type=CLIENT')); ?>">
+                    <span>Total Komputer Client</span>
+                    <h3 data-device-stat="total_client"><?= format_number($deviceStats['total_client']); ?></h3>
+                    <small>Client aktif pada inventory</small>
+                </a>
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <a class="metric-card card-emerald d-block text-decoration-none" href="<?= e(url('modules/komputer/index.php?device_type=SERVER')); ?>">
+                    <span>Windows Server</span>
+                    <h3 data-device-stat="windows_server"><?= format_number($deviceStats['windows_server']); ?></h3>
+                    <small>Server berbasis Windows</small>
+                </a>
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <a class="metric-card card-rose d-block text-decoration-none" href="<?= e(url('modules/komputer/index.php?device_type=SERVER')); ?>">
+                    <span>Linux Server</span>
+                    <h3 data-device-stat="linux_server"><?= format_number($deviceStats['linux_server']); ?></h3>
+                    <small>Server berbasis Linux</small>
+                </a>
+            </div>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-6 col-xl-4">
+                <a class="metric-card card-sky d-block text-decoration-none" href="<?= e(url('modules/komputer/index.php?device_type=SERVER')); ?>">
+                    <span>Hypervisor</span>
+                    <h3 data-device-stat="hypervisor"><?= format_number($deviceStats['hypervisor']); ?></h3>
+                    <small>Server virtual / memakai hypervisor</small>
+                </a>
+            </div>
+            <div class="col-md-6 col-xl-4">
+                <a class="metric-card card-amber d-block text-decoration-none" href="<?= e(url('modules/komputer/index.php?storage_mode=hdd_only')); ?>">
+                    <span>HDD Only</span>
+                    <h3 data-device-stat="hdd_only"><?= format_number($deviceStats['hdd_only']); ?></h3>
+                    <small>Perangkat tanpa SSD</small>
+                </a>
+            </div>
+            <div class="col-md-6 col-xl-4">
+                <a class="metric-card card-rose d-block text-decoration-none" href="<?= e(url('modules/komputer/index.php?device_type=SERVER&kondisi=Rusak')); ?>">
+                    <span>Server Bermasalah</span>
+                    <h3 data-device-stat="server_bermasalah"><?= format_number($deviceStats['server_bermasalah']); ?></h3>
+                    <small>Server dengan kondisi bukan baik</small>
+                </a>
+            </div>
+        </div>
+        <div class="small text-muted mt-3" data-device-generated-at>
+            Update cache: <?= e(str_replace('T', ' ', preg_replace('/\+.*/', '', (string) $deviceStats['generated_at']))); ?>
+        </div>
     </div>
 </div>
 
