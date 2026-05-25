@@ -48,6 +48,15 @@ if (is_post()) {
             redirect('modules/komputer/index.php?device_type=SERVER');
         }
     }
+
+    if ($action === 'create_client') {
+        $newId = komputer_inventory_create_client($pdo, $_POST, $errors);
+
+        if ($newId !== null) {
+            set_flash('success', 'Data komputer client berhasil ditambahkan.');
+            redirect('modules/komputer/index.php?device_type=CLIENT');
+        }
+    }
 }
 
 $rows = komputer_inventory_rows($pdo, $filters);
@@ -145,6 +154,8 @@ require_once BASE_PATH . '/includes/layout_top.php';
             </div>
             <?php if ($isServerTab): ?>
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createServerModal">Tambah Server</button>
+            <?php else: ?>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createClientModal">Tambah Komputer Client</button>
             <?php endif; ?>
         </div>
     </div>
@@ -624,6 +635,128 @@ require_once BASE_PATH . '/includes/layout_top.php';
                 </div>
             </div>
         <?php endforeach; ?>
+    </div>
+</div>
+
+<div class="modal fade" id="createClientModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <form method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title">Tambah Komputer Client</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <?= csrf_field(); ?>
+                    <input type="hidden" name="action" value="create_client">
+                    <input type="hidden" name="device_type" value="CLIENT">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Hostname</label>
+                            <input type="text" name="hostname" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Username Windows</label>
+                            <input type="text" name="username" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">IP Address Utama</label>
+                            <input type="text" name="ip_address" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">MAC Address</label>
+                            <input type="text" name="mac_address" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Merk / Brand</label>
+                            <input type="text" name="merk" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Model</label>
+                            <input type="text" name="model" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Processor</label>
+                            <input type="text" name="processor" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Jumlah Core</label>
+                            <input type="number" name="core" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Kondisi Device</label>
+                            <select name="kondisi" class="form-select" required>
+                                <?php foreach (['Baik', 'Rusak', 'Perbaikan'] as $conditionOption): ?>
+                                    <option value="<?= e($conditionOption); ?>"><?= e($conditionOption); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">RAM Total</label>
+                            <input type="text" name="ram" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Nama OS</label>
+                            <input type="text" name="os_name" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Versi OS</label>
+                            <input type="text" name="os_version" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Arsitektur</label>
+                            <input type="text" name="architecture" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Tahun Inventaris</label>
+                            <input type="number" name="tahun_inventaris" class="form-control" value="<?= e(date('Y')); ?>" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Nama User / Petugas</label>
+                            <input type="text" name="nama_user" class="form-control" required>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Ruangan</label>
+                            <select name="ruangan" class="form-select" required>
+                                <option value="">Pilih ruangan</option>
+                                <?php foreach ($roomOptions as $roomOption): ?>
+                                    <option value="<?= e($roomOption); ?>"><?= e($roomOption); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">IP Tambahan</label>
+                            <textarea name="client_multiple_ip" class="form-control" rows="3"></textarea>
+                            <div class="form-text">Pisahkan dengan baris baru atau koma bila ada lebih dari satu IP.</div>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">SSD</label>
+                            <textarea name="ssd" class="form-control" rows="2"></textarea>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">HDD</label>
+                            <textarea name="hdd" class="form-control" rows="2"></textarea>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">VGA / GPU</label>
+                            <textarea name="vga" class="form-control" rows="2"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Motherboard</label>
+                            <input type="text" name="motherboard" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Serial Number</label>
+                            <input type="text" name="serial_number" class="form-control">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan Komputer Client</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 

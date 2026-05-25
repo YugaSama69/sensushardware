@@ -29,6 +29,64 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+function Write-ScanBanner {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$DeviceType
+    )
+
+    Write-Host ''
+    Write-Host '============================================================' -ForegroundColor DarkCyan
+    Write-Host '        PENDATAAN INVENTARIS DEVICE - SIAEGIS' -ForegroundColor Cyan
+    Write-Host '============================================================' -ForegroundColor DarkCyan
+    Write-Host ("Tipe Device : {0}" -f $DeviceType) -ForegroundColor Gray
+    Write-Host ("Komputer    : {0}" -f $env:COMPUTERNAME) -ForegroundColor Gray
+    Write-Host ("User Windows: {0}" -f $env:USERNAME) -ForegroundColor Gray
+    Write-Host ''
+}
+
+function Write-ScanStep {
+    param(
+        [Parameter(Mandatory = $true)]
+        [int]$Number,
+
+        [Parameter(Mandatory = $true)]
+        [int]$Total,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Title
+    )
+
+    Write-Host ("[{0}/{1}] {2}" -f $Number, $Total, $Title) -ForegroundColor Yellow
+}
+
+function Write-ScanInfo {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Message
+    )
+
+    Write-Host ("    > {0}" -f $Message) -ForegroundColor Gray
+}
+
+function Write-ScanSuccess {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Message
+    )
+
+    Write-Host ("    OK  {0}" -f $Message) -ForegroundColor Green
+}
+
+function Write-ScanFailure {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Message
+    )
+
+    Write-Host ("    GAGAL  {0}" -f $Message) -ForegroundColor Red
+}
+
 function Get-SystemInstance {
     param(
         [Parameter(Mandatory = $true)]
@@ -106,6 +164,32 @@ function Test-ValidIpv4Address {
     }
 
     return $true
+}
+
+function Get-Ipv4Priority {
+    param([string]$Value)
+
+    if (-not (Test-ValidIpv4Address -Value $Value)) {
+        return 99
+    }
+
+    if ($Value -match '^192\.168\.') {
+        return 0
+    }
+
+    if ($Value -match '^10\.') {
+        return 0
+    }
+
+    if ($Value -match '^172\.(1[6-9]|2[0-9]|3[0-1])\.') {
+        return 0
+    }
+
+    if ($Value -match '^169\.254\.') {
+        return 3
+    }
+
+    return 1
 }
 
 function Get-PreferredIpv4Addresses {
@@ -194,7 +278,7 @@ function Get-PreferredIpv4Addresses {
 
     $preferred = @(
         $preferred |
-            Sort-Object -Property @{ Expression = { if ($_.HasGateway) { 0 } else { 1 } } }, IPAddress |
+            Sort-Object -Property @{ Expression = { Get-Ipv4Priority -Value ([string] $_.IPAddress) } }, @{ Expression = { if ($_.HasGateway) { 0 } else { 1 } } }, IPAddress |
             Select-Object -Unique IPAddress, AdapterName, HasGateway, Gateway, PrefixLength
     )
 
@@ -516,6 +600,11 @@ function Get-NetworkAdapterPayloadFromPreferredEntries {
 }
 
 try {
+    Write-ScanBanner -DeviceType $DeviceType
+
+    $totalSteps = 7
+
+    Write-ScanStep -Number 1 -Total $totalSteps -Title 'Validasi input pendataan'
     if ($Kondisi -notin @('Baik', 'Rusak', 'Perbaikan')) {
         throw 'Kondisi device tidak valid.'
     }
@@ -523,14 +612,37 @@ try {
     if ($DeviceType -notin @('CLIENT', 'SERVER')) {
         throw 'Tipe device tidak valid.'
     }
+    Write-ScanInfo ("Ruangan: {0}" -f $Ruangan)
+    Write-ScanInfo ("Tahun inventaris: {0}" -f $TahunInventaris)
+    Write-ScanInfo ("Nama user: {0}" -f $NamaUser)
+    Write-ScanInfo ("Kondisi: {0}" -f $Kondisi)
+    Write-ScanSuccess 'Validasi input selesai.'
 
+    Write-ScanStep -Number 2 -Total $totalSteps -Title 'Membaca identitas sistem'
     $computerSystem = Get-SystemInstance -ClassName 'Win32_ComputerSystem'
+    $os = Get-SystemInstance -ClassName 'Win32_OperatingSystem'
+    $bios = Get-SystemInstance -ClassName 'Win32_BIOS' | Select-Object -First 1
+    Write-ScanInfo ("Hostname: {0}" -f $env:COMPUTERNAME)
+    Write-ScanInfo ("Manufacturer / Model: {0} / {1}" -f $computerSystem.Manufacturer, $computerSystem.Model)
+    Write-ScanInfo ("Serial Number: {0}" -f $(if ($bios.SerialNumber) { $bios.SerialNumber } else { '-' }))
+    Write-ScanInfo ("OS: {0}" -f $os.Caption)
+    Write-ScanSuccess 'Identitas sistem berhasil dibaca.'
+
+    Write-ScanStep -Number 3 -Total $totalSteps -Title 'Membaca komponen hardware utama'
     $processors = @(Get-SystemInstance -ClassName 'Win32_Processor')
     $memory = @(Get-SystemInstance -ClassName 'Win32_PhysicalMemory')
-    $os = Get-SystemInstance -ClassName 'Win32_OperatingSystem'
     $baseBoard = Get-SystemInstance -ClassName 'Win32_BaseBoard' | Select-Object -First 1
-    $bios = Get-SystemInstance -ClassName 'Win32_BIOS' | Select-Object -First 1
     $gpu = @(Get-SystemInstance -ClassName 'Win32_VideoController')
+    $totalCore = ($processors | Measure-Object -Property NumberOfCores -Sum).Sum
+    $totalThread = ($processors | Measure-Object -Property NumberOfLogicalProcessors -Sum).Sum
+    $totalRamText = Convert-ToGbText (($memory | Measure-Object -Property Capacity -Sum).Sum)
+    Write-ScanInfo ("Processor: {0}" -f (Join-DeviceNames ($processors | ForEach-Object { $_.Name })))
+    Write-ScanInfo ("Core / Thread: {0} / {1}" -f [int]$totalCore, [int]$totalThread)
+    Write-ScanInfo ("RAM Total: {0}" -f $totalRamText)
+    Write-ScanInfo ("VGA: {0}" -f (Join-DeviceNames ($gpu | ForEach-Object { $_.Name })))
+    Write-ScanSuccess 'Pembacaan hardware utama selesai.'
+
+    Write-ScanStep -Number 4 -Total $totalSteps -Title 'Membaca jaringan dan alamat IP'
     $networkAdapters = @(Get-SystemInstance -ClassName 'Win32_NetworkAdapterConfiguration' |
         Where-Object { $_.IPEnabled -eq $true -and $_.MACAddress })
     $primaryNetwork = $networkAdapters | Select-Object -First 1
@@ -548,7 +660,15 @@ try {
     $multipleNic = Join-DeviceNames ($nicDescriptions | Select-Object -Unique)
     $detectedIp = if ($ipv4Addresses.Count -gt 0) { [string] $ipv4Addresses[0] } else { '-' }
     $macAddress = if ($primaryNetwork) { $primaryNetwork.MACAddress } else { '-' }
+    Write-ScanInfo ("IP utama: {0}" -f $detectedIp)
+    if ($ipv4Addresses.Count -gt 1) {
+        Write-ScanInfo ("IP tambahan: {0}" -f (($ipv4Addresses | Select-Object -Skip 1) -join ', '))
+    }
+    Write-ScanInfo ("Jumlah IP aktif: {0}" -f $ipv4Addresses.Count)
+    Write-ScanInfo ("MAC Address: {0}" -f $macAddress)
+    Write-ScanSuccess 'Informasi jaringan berhasil dibaca.'
 
+    Write-ScanStep -Number 5 -Total $totalSteps -Title 'Membaca media penyimpanan dan peran sistem'
     $storageBreakdown = Get-StorageBreakdown
     $detectedVirtualization = Get-VirtualizationKind -ComputerSystem $computerSystem
     $resolvedVirtualization = if ($DeviceType -eq 'SERVER' -and $VirtualFisik -ne '') { $VirtualFisik } else { $detectedVirtualization }
@@ -556,10 +676,19 @@ try {
     $resolvedOsName = if ($DeviceType -eq 'SERVER' -and $OperatingSystem -ne '') { $OperatingSystem } else { $os.Caption }
     $resolvedIp = if ($DeviceType -eq 'SERVER' -and $IpUtama -ne '') { $IpUtama } else { $detectedIp }
     $serialNumber = if ($bios.SerialNumber) { $bios.SerialNumber } else { '-' }
-    $totalCore = ($processors | Measure-Object -Property NumberOfCores -Sum).Sum
-    $totalThread = ($processors | Measure-Object -Property NumberOfLogicalProcessors -Sum).Sum
     $serverRole = if ($DeviceType -eq 'SERVER') { Get-ServerRoleText -FallbackRole $FungsiServer } else { '' }
+    Write-ScanInfo ("SSD: {0}" -f $storageBreakdown.ssd)
+    Write-ScanInfo ("HDD: {0}" -f $storageBreakdown.hdd)
+    if ($DeviceType -eq 'SERVER') {
+        Write-ScanInfo ("Mode server: {0}" -f $resolvedVirtualization)
+        if ($resolvedHypervisor -ne '') {
+            Write-ScanInfo ("Hypervisor: {0}" -f $resolvedHypervisor)
+        }
+        Write-ScanInfo ("Peran server: {0}" -f $serverRole)
+    }
+    Write-ScanSuccess 'Penyimpanan dan peran sistem selesai dibaca.'
 
+    Write-ScanStep -Number 6 -Total $totalSteps -Title 'Menyusun data inventaris'
     $clientNetworkAdapters = @()
     $clientMultipleNic = $multipleNic
     $clientMultipleIp = ($ipv4Addresses -join ', ')
@@ -620,20 +749,28 @@ try {
         network_adapters = $clientNetworkAdapters
         sent_at = (Get-Date).ToUniversalTime().ToString('o')
     }
+    Write-ScanInfo ("Payload siap dikirim untuk device {0}" -f $payload.hostname)
+    Write-ScanInfo ("Jumlah adapter aktif: {0}" -f $clientNetworkAdapters.Count)
+    Write-ScanSuccess 'Payload inventaris berhasil disusun.'
 
+    Write-ScanStep -Number 7 -Total $totalSteps -Title 'Mengirim data ke server'
     $json = ConvertTo-JsonCompat -InputObject $payload
     $headers = @{}
 
     if ($UploadToken -ne '') {
+        Write-ScanInfo 'Membuat header keamanan upload...'
         $bodyHash = Get-HmacSha256 -Secret $UploadToken -Message $json
         $headers['X-Device-Token'] = $UploadToken
         $headers['X-Device-Hash'] = $bodyHash
         $headers['X-Requested-With'] = 'SiAEGIS-Agent'
     }
 
+    Write-ScanInfo ("Endpoint: {0}" -f $ServerUrl)
     $response = Invoke-JsonPost -Url $ServerUrl -JsonBody $json -Headers $headers
 
     if ($response.success -eq $true) {
+        Write-ScanSuccess 'Server menerima data inventaris.'
+        Write-Host ''
         Write-Host 'Data berhasil dikirim.' -ForegroundColor Green
         Write-Host "Hostname: $($payload.hostname)"
         Write-Host "IP Address: $($payload.ip_address)"
@@ -647,9 +784,11 @@ try {
         exit 0
     }
 
+    Write-ScanFailure ("Server menolak data: {0}" -f $response.message)
     Write-Host "Data gagal dikirim: $($response.message)" -ForegroundColor Red
     exit 1
 } catch {
+    Write-ScanFailure $_.Exception.Message
     Write-Host "Terjadi error: $($_.Exception.Message)" -ForegroundColor Red
     exit 1
 }

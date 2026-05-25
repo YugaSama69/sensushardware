@@ -1236,7 +1236,19 @@ set "LOKASI_RACK={$lokasiRack}"
 set "IP_UTAMA={$ipUtama}"
 set "UPLOAD_TOKEN={$uploadToken}"
 
+echo ============================================================
+echo            PENDATAAN INVENTARIS DEVICE - SILEGIT
+echo ============================================================
+echo Server   : %API_URL%
+echo Tipe     : %DEVICE_TYPE%
+echo Ruangan  : %RUANGAN%
+echo Tahun    : %TAHUN_INVENTARIS%
+echo NamaUser : %NAMA_USER%
+echo Kondisi  : %KONDISI%
+echo.
+
 echo Memvalidasi koneksi ke server...>>"%LOG_FILE%"
+echo [1/3] Memvalidasi koneksi ke server...
 
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
 "\$ErrorActionPreference='Stop'; ^
@@ -1254,8 +1266,10 @@ if errorlevel 1 (
     pause
     exit /b 1
 )
+echo     OK koneksi server tersedia.
 
 echo Mengunduh PowerShell agent...>>"%LOG_FILE%"
+echo [2/3] Mengunduh agent pendataan...
 
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
 "\$ErrorActionPreference='Stop'; ^
@@ -1272,8 +1286,11 @@ if errorlevel 1 (
     pause
     exit /b 1
 )
+echo     OK agent berhasil diunduh.
 
 echo Menjalankan agent...>>"%LOG_FILE%"
+echo [3/3] Menjalankan proses scan device...
+echo.
 
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_PATH%" ^
 -ServerUrl "%API_URL%" ^

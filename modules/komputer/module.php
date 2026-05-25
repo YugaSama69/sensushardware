@@ -364,6 +364,82 @@ function komputer_inventory_create_server(PDO $pdo, array $input, array &$errors
     }
 }
 
+function komputer_inventory_create_client(PDO $pdo, array $input, array &$errors): ?int
+{
+    $payload = komputer_inventory_payload($input);
+    $payload['device_type'] = 'CLIENT';
+    $ipAddresses = komputer_inventory_collect_ip_addresses(
+        $payload['ip_address'],
+        (string) ($input['client_multiple_ip'] ?? ''),
+        $errors
+    );
+
+    if ($ipAddresses && $payload['ip_address'] === '') {
+        $payload['ip_address'] = $ipAddresses[0];
+    }
+
+    komputer_inventory_validate_payload($payload, $errors);
+
+    if ($errors) {
+        return null;
+    }
+
+    $pdo->beginTransaction();
+
+    try {
+        $statement = $pdo->prepare('
+            INSERT INTO komputer_client (
+                device_type, hostname, username, ip_address, mac_address, merk, model, processor, core,
+                kondisi, ram, ssd, hdd, vga, motherboard, os_name, os_version, architecture,
+                serial_number,
+                tahun_inventaris, ruangan, petugas, tanggal, jam, created_at
+            ) VALUES (
+                :device_type, :hostname, :username, :ip_address, :mac_address, :merk, :model, :processor, :core,
+                :kondisi, :ram, :ssd, :hdd, :vga, :motherboard, :os_name, :os_version, :architecture,
+                :serial_number,
+                :tahun_inventaris, :ruangan, :petugas, :tanggal, :jam, NOW()
+            )
+        ');
+
+        $statement->execute([
+            'device_type' => $payload['device_type'],
+            'hostname' => $payload['hostname'],
+            'username' => $payload['username'],
+            'ip_address' => $payload['ip_address'],
+            'mac_address' => $payload['mac_address'],
+            'merk' => $payload['merk'],
+            'model' => $payload['model'],
+            'processor' => $payload['processor'],
+            'core' => $payload['core'],
+            'kondisi' => $payload['kondisi'],
+            'ram' => $payload['ram'],
+            'ssd' => $payload['ssd'],
+            'hdd' => $payload['hdd'],
+            'vga' => $payload['vga'],
+            'motherboard' => $payload['motherboard'],
+            'serial_number' => $payload['serial_number'],
+            'os_name' => $payload['os_name'],
+            'os_version' => $payload['os_version'],
+            'architecture' => $payload['architecture'],
+            'tahun_inventaris' => $payload['tahun_inventaris'],
+            'ruangan' => $payload['ruangan'],
+            'petugas' => $payload['petugas'],
+            'tanggal' => date('Y-m-d'),
+            'jam' => date('H:i:s'),
+        ]);
+
+        $id = (int) $pdo->lastInsertId();
+        komputer_inventory_sync_client_ip_addresses($pdo, $id, $ipAddresses);
+
+        $pdo->commit();
+        return $id;
+    } catch (Throwable $throwable) {
+        $pdo->rollBack();
+        $errors[] = 'Data komputer client belum berhasil ditambahkan.';
+        return null;
+    }
+}
+
 function komputer_inventory_find_device(PDO $pdo, int $id): ?array
 {
     $activeIpSelect = komputer_inventory_active_ip_select_sql($pdo);
@@ -541,6 +617,79 @@ function komputer_inventory_multiple_ip_lines(?string $value): array
     return $lines;
 }
 
+function komputer_inventory_ip_priority(string $ipAddress): int
+{
+    $ipAddress = trim($ipAddress);
+    if ($ipAddress === '' || filter_var($ipAddress, FILTER_VALIDATE_IP) === false) {
+        return 99;
+    }
+
+    if (filter_var($ipAddress, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false) {
+        if (preg_match('/^192\.168\./', $ipAddress) === 1) {
+            return 0;
+        }
+
+        if (preg_match('/^10\./', $ipAddress) === 1) {
+            return 0;
+        }
+
+        if (preg_match('/^172\.(1[6-9]|2[0-9]|3[0-1])\./', $ipAddress) === 1) {
+            return 0;
+        }
+
+        if (preg_match('/^169\.254\./', $ipAddress) === 1) {
+            return 3;
+        }
+
+        if (preg_match('/^127\./', $ipAddress) === 1) {
+            return 4;
+        }
+
+        return 1;
+    }
+
+    if (filter_var($ipAddress, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false) {
+        if (stripos($ipAddress, 'fe80:') === 0) {
+            return 5;
+        }
+
+        if ($ipAddress === '::1') {
+            return 6;
+        }
+
+        return 2;
+    }
+
+    return 99;
+}
+
+function komputer_inventory_sort_ip_addresses(array $ipAddresses): array
+{
+    $normalized = [];
+
+    foreach ($ipAddresses as $ipAddress) {
+        $ipAddress = trim((string) $ipAddress);
+        if ($ipAddress === '' || in_array($ipAddress, $normalized, true)) {
+            continue;
+        }
+
+        $normalized[] = $ipAddress;
+    }
+
+    usort($normalized, static function (string $left, string $right): int {
+        $leftPriority = komputer_inventory_ip_priority($left);
+        $rightPriority = komputer_inventory_ip_priority($right);
+
+        if ($leftPriority !== $rightPriority) {
+            return $leftPriority <=> $rightPriority;
+        }
+
+        return strnatcasecmp($left, $right);
+    });
+
+    return $normalized;
+}
+
 function komputer_inventory_parse_ip_input(?string $value, array &$invalidEntries = []): array
 {
     $lines = komputer_inventory_multiple_ip_lines($value);
@@ -583,7 +732,7 @@ function komputer_inventory_collect_ip_addresses(string $primaryIp, ?string $sec
         }
     }
 
-    return $ipAddresses;
+    return komputer_inventory_sort_ip_addresses($ipAddresses);
 }
 
 function komputer_inventory_sync_client_ip_addresses(PDO $pdo, int $clientId, array $ipAddresses): void
@@ -656,11 +805,11 @@ function komputer_inventory_client_ip_lines(array $row): array
 {
     $lines = komputer_inventory_multiple_ip_lines($row['active_ip_list'] ?? '');
     if ($lines) {
-        return $lines;
+        return komputer_inventory_sort_ip_addresses($lines);
     }
 
     $primaryIp = trim((string) ($row['ip_address'] ?? ''));
-    return $primaryIp !== '' ? [$primaryIp] : [];
+    return $primaryIp !== '' ? komputer_inventory_sort_ip_addresses([$primaryIp]) : [];
 }
 
 function komputer_inventory_primary_ip(array $row): string
@@ -687,14 +836,14 @@ function komputer_inventory_server_ip_lines(array $row): array
 {
     $lines = komputer_inventory_multiple_ip_lines($row['active_ip_list'] ?? '');
     if ($lines) {
-        return $lines;
+        return komputer_inventory_sort_ip_addresses($lines);
     }
 
     $lines = komputer_inventory_multiple_ip_lines($row['multiple_ip'] ?? '');
     if ($lines) {
-        return $lines;
+        return komputer_inventory_sort_ip_addresses($lines);
     }
 
     $primaryIp = trim((string) ($row['ip_address'] ?? ''));
-    return $primaryIp !== '' ? [$primaryIp] : [];
+    return $primaryIp !== '' ? komputer_inventory_sort_ip_addresses([$primaryIp]) : [];
 }
